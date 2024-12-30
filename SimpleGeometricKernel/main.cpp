@@ -1,30 +1,40 @@
 #include <SFML/Graphics.hpp>
-#include "Shape.h"
+#include "BasicShape.h"
+#include <iostream>
+#include "WindowManager.h"
+#include "GeometricOperations.h"
 using namespace sf;
+
+template <typename T, typename... Args>
+std::shared_ptr<T> ms(Args&&... args) {
+    return std::make_shared<T>(std::forward<Args>(args)...);
+}
 
 int main()
 {
 
-    RenderWindow window(VideoMode(400, 400), L"Новый проект", Style::Default);
+    ShapeManager sm;
 
-    window.setVerticalSyncEnabled(true);
+    auto point1 = ms<Point2D>(0,0);
+    auto point2 = ms<Point2D>(0,0);
+    sm.addBasicShape(point1);
+    sm.addBasicShape(point2);
 
-    CircleShape shape(100.f, 3);
-    shape.setPosition(100, 100);
-    shape.setFillColor(Color::Magenta);
+    go::move(*point1, 3, 4);
+    std::cout<<go::distance(*point1, *point2);
 
-    while (window.isOpen())
-    {
-        Event event;
-        while (window.pollEvent(event))
-        {
-            if (event.type == Event::Closed)
-                window.close();
-        }
+    
 
-        window.clear(Color::Blue);
-        window.draw(shape);
-        window.display();
-    }
+
+
+
+
+
+    WindowManager window(sm);
+    window.show();
+
+
+   
+
     return 0;
 }
