@@ -3,6 +3,11 @@
 #include <iostream>
 #include "WindowManager.h"
 #include "GeometricOperations.h"
+#include "global.h"
+
+float global::size = 1.f;
+float global::linesize = 1.f;
+
 using namespace sf;
 
 template <typename T, typename... Args>
@@ -15,19 +20,24 @@ int main()
 
     ShapeManager sm;
 
-    auto point1 = ms<Point2D>(0,0);
-    auto point2 = ms<Point2D>(0,0);
-    sm.addBasicShape(point1);
-    sm.addBasicShape(point2);
 
-    go::move(*point1, 3, 4);
-    std::cout<<go::distance(*point1, *point2);
+    Point2D p1 = { 0,0 };
+    Point2D p2 = { 1,1 };
+    Line line(p1, p2);
+    Line line1(p1, p2);
+    
+    go::move(line1, 100, 0);
+    go::move(p2, 100, 100);
+
+    std::cout<<go::distance(p1, p2);
 
     
 
 
-
-
+    sm.addBasicShape(line);
+    sm.addBasicShape(line1);
+    sm.addBasicShape(p1);
+    sm.addBasicShape(p2);
 
 
     WindowManager window(sm);

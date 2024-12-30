@@ -136,6 +136,7 @@
   <ItemGroup>
     <ClInclude Include="GeometricOperations.h" />
     <ClInclude Include="BasicShape.h" />
+    <ClInclude Include="global.h" />
     <ClInclude Include="ShapeManager.h" />
     <ClInclude Include="WindowManager.h" />
   </ItemGroup>

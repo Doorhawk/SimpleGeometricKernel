@@ -7,8 +7,9 @@ private:
     std::vector<std::shared_ptr<BasicShape>> BasicShapes;
 
 public:
-    void addBasicShape(const std::shared_ptr<BasicShape>& BasicShape) {
-        BasicShapes.push_back(BasicShape);
+    template <typename T, typename = std::enable_if_t<std::is_base_of_v<BasicShape, T>>>
+    void addBasicShape(const T& shape) {
+        BasicShapes.push_back(std::make_shared<T>(shape)); // Создаём shared_ptr и добавляем
     }
 
     void removeBasicShape(size_t index) {
