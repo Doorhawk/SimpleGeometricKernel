@@ -11,6 +11,7 @@ private:
     View view;
     bool isDragging;
     Vector2f prevMousePos;
+    Font font;
 
     void controls(Event event) {
 
@@ -34,7 +35,6 @@ private:
             view.zoom(zoomFactor);
         }
 
-        global::linesize = view.getSize().x + abs(view.getCenter().x) * 2 + abs(view.getCenter().y) * 2;
     }
     void drawAxes() {
 
@@ -79,7 +79,9 @@ public:
         //view.zoom(1./80);
         view.setCenter(0.f, 0.f); // Центрируем вид
         isDragging = false;
-        global::linesize = view.getSize().x + abs(view.getCenter().x) * 2 + abs(view.getCenter().y) * 2;
+        if (!font.loadFromFile("arialmt.ttf")) {
+            std::cout << "font errror";
+        }
     }
 
     void show() {
@@ -100,7 +102,7 @@ public:
 
             window.clear(Color::White);
 
-            shapeManager.drawAll(window);
+            shapeManager.drawAll(window,font);
             drawAxes();
 
             window.display();

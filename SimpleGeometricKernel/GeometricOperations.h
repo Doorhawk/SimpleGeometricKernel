@@ -1,16 +1,20 @@
 #pragma once
 
-class Point2D;
+class Point;
 class Line;
 
 class go {
 public:
-	static void move(Point2D& point, double dx, double dy);
+	static void move(Point& point, double dx, double dy);
 	static void move(Line& line, double dx, double dy);
 
-	static void rotate(Point2D& point, Point2D& center, double angle);
-	static void rotate(Line& line, Point2D& center, double angle);
+	static void rotate(Point& point, const Point& center, double angle);
+	static void rotate(Line& line, const Point& center, double angle);
 
-	static double distance(Point2D& point1, Point2D& point2);
+	static Line getParallel(const Line& line, const  Point& point);
+	static Line getPerpendicular(const Line& line, const  Point& point);
+
+	static double distance(const Point& point1, const Point& point2);
+	static double distance(const Line& line, const Point& point);
 }; 
 

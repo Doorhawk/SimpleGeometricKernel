@@ -6,7 +6,6 @@
 #include "global.h"
 
 float global::size = 1.f;
-float global::linesize = 1.f;
 
 using namespace sf;
 
@@ -15,29 +14,35 @@ std::shared_ptr<T> ms(Args&&... args) {
     return std::make_shared<T>(std::forward<Args>(args)...);
 }
 
+const double PI = acos(-1);
+
 int main()
 {
 
     ShapeManager sm;
 
 
-    Point2D p1 = { 0,0 };
-    Point2D p2 = { 1,1 };
-    Line line(p1, p2);
-    Line line1(p1, p2);
+    Point l1(0, 0);
+    Point l2(100,100);
+
+    Point p2 = { -0,100 };
+  
+    Line line(l1,l2);
+
+    double a = 0;
+
+    Line line1;
     
-    go::move(line1, 100, 0);
-    go::move(p2, 100, 100);
 
-    std::cout<<go::distance(p1, p2);
+    std::cout << go::distance(line, p2) << std::endl;
 
-    
-
-
+    //sm.addBasicShape(line1);
     sm.addBasicShape(line);
-    sm.addBasicShape(line1);
-    sm.addBasicShape(p1);
+    
+    sm.addBasicShape(l1);
     sm.addBasicShape(p2);
+    sm.addBasicShape(l2);
+    
 
 
     WindowManager window(sm);

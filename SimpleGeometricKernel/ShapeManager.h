@@ -18,9 +18,10 @@ public:
         }
     }
 
-    void drawAll(sf::RenderWindow& window) {
+    void drawAll(sf::RenderWindow& window,Font font) {
+        int i = 0;
         for (const auto& BasicShape : BasicShapes) {
-            BasicShape->draw(window);
+            BasicShape->draw(window,i++,font);
         }
     }
 
