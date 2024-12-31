@@ -1,6 +1,18 @@
 #include "BasicShape.h"
 #include "GeometricOperations.h"
 
+double go::precision = 1e-6;
+
+void go::setPrecision(double newPrecision) {
+	if (newPrecision <= 0) {
+		throw std::invalid_argument("Precision must be positive.");
+	}
+	precision = newPrecision;
+}
+double go::getPrecision() {
+	return precision;
+}
+
 void go::move(Point& point, double dx, double dy) {
 	point.x += dx;
 	point.y += dy;
@@ -77,4 +89,80 @@ Line go::getPerpendicular(const Line& line, const  Point& point) {
 	Point p1 = (line.p1 - line.p2);
 	p1 = { -p1.y,p1.x };
 	return Line(p1 + point, point);
+}
+
+std::optional<Point> go::findIntersection(const Line& line1, const Line& line2) {
+	double A1 = line1.p2.x - line1.p1.x;
+	double B1 = -(line2.p2.x - line2.p1.x);
+	double C1 = line2.p1.x - line1.p1.x;
+
+	double A2 = line1.p2.y - line1.p1.y;
+	double B2 = -(line2.p2.y - line2.p1.y);
+	double C2 = line2.p1.y - line1.p1.y;
+
+	double det = A1 * B2 - A2 * B1;
+	if (std::abs(det) < precision) {
+		// Прямые параллельны или совпадают
+		return std::nullopt;
+	}
+
+	double t = (C1 * B2 - C2 * B1) / det;
+
+	// Вычисляем точку пересечения
+	Point intersection;
+	intersection.x = line1.p1.x + t * (line1.p2.x - line1.p1.x);
+	intersection.y = line1.p1.y + t * (line1.p2.y - line1.p1.y);
+
+	return intersection;
+	/*
+ * To find the intersection of two lines defined by two pairs of points:
+ * Line 1: P1(x1, y1), P2(x2, y2)
+ * Line 2: Q1(x3, y3), Q2(x4, y4)
+ *
+ * Lines are parameterized as follows:
+ * 1. P(t) = P1 + t(P2 - P1)
+ *    Expanded: x = x1 + t(x2 - x1), y = y1 + t(y2 - y1)
+ * 2. Q(u) = Q1 + u(Q2 - Q1)
+ *    Expanded: x = x3 + u(x4 - x3), y = y3 + u(y4 - y3)
+ *
+ * The goal is to solve for t and u where P(t) = Q(u), i.e., the intersection point.
+ *
+ * Step-by-step process:
+ *
+ * 1. Create two equations based on the parameterization:
+ *    x1 + t(x2 - x1) = x3 + u(x4 - x3)
+ *    y1 + t(y2 - y1) = y3 + u(y4 - y3)
+ *
+ * 2. Rearrange the equations:
+ *    t(x2 - x1) - u(x4 - x3) = x3 - x1
+ *    t(y2 - y1) - u(y4 - y3) = y3 - y1
+ *
+ * 3. Define coefficients:
+ *    A1 = x2 - x1, B1 = -(x4 - x3), C1 = x3 - x1
+ *    A2 = y2 - y1, B2 = -(y4 - y3), C2 = y3 - y1
+ *
+ *    This gives a system of linear equations:
+ *    A1 * t + B1 * u = C1
+ *    A2 * t + B2 * u = C2
+ *
+ * 4. Solve using Cramer's rule:
+ *    Determinant: D = A1 * B2 - A2 * B1
+ *
+ *    If D == 0, the lines are parallel or coincident.
+ *    Otherwise, solve for t and u:
+ *    Dt = C1 * B2 - C2 * B1
+ *    Du = A1 * C2 - A2 * C1
+ *
+ *    t = Dt / D
+ *    u = Du / D
+ *
+ * 5. Find the intersection point:
+ *    Substitute t (or u) into the parameterized equation for one of the lines:
+ *    x = x1 + t(x2 - x1)
+ *    y = y1 + t(y2 - y1)
+ *
+ * Notes:
+ * - Use a precision threshold to check if D is close to 0, indicating parallel or overlapping lines.
+ * - Return std::optional<Point> to handle cases where the lines do not intersect.
+ */
 }
