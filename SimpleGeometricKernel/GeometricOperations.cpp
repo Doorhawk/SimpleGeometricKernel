@@ -13,6 +13,7 @@ double go::getPrecision() {
 	return precision;
 }
 
+
 void go::move(Point& point, double dx, double dy) {
 	point.x += dx;
 	point.y += dy;
@@ -75,6 +76,9 @@ double go::distance(const Line& line, const Point& point) {
 	answ = answ / a.abs(); // Sp = h * abs(a); => h = Sp/abs(a)
 
 	return answ;
+}
+double go::distance(const Point& point, const Line& line) {
+	return go::distance(line, point);
 }
 
 Line go::getParallel(const Line& line, const  Point& point) {
