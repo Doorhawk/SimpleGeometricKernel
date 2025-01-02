@@ -27,6 +27,7 @@ private:
     friend class go;
     friend class Line;
     friend class Circle;
+    friend class Poligon;
 public:
     Point(double x = 0, double y = 0) :x(x), y(y) {}
     Point(const Point& other) :x(other.x), y(other.y) {}
@@ -284,6 +285,90 @@ public:
         text.setCharacterSize(15);
         text.setFillColor(Color::Black);
         window.draw(text);
+    }
+};
+
+class Poligon : public BasicShape {
+private:
+    vector<Point> points;
+    friend class go;
+public:
+    Poligon() :points({}) {}
+    Poligon(vector<Point>& vec) : points(vec) {}
+    Poligon(const Poligon& other) :points(other.points) {}
+
+    void printInf() const override {
+        cout << "poligon: \n";
+        for(auto& p : points)
+            cout<< "\t( " << p.x << ", " << p.y << ")"<< endl;
+    }
+    void move(double dx, double dy) override {
+        for (auto& p : points) {
+            p.x += dx;
+            p.y += dy;
+        }
+    }
+    void rotate(const Point& center, double angle) override {
+
+        for (auto& p : points) {
+            p.x -= center.x;
+            p.y -= center.y;
+
+            double newx = cos(angle) * p.x - sin(angle) * p.y;
+            double newy = sin(angle) * p.x + cos(angle) * p.y;
+
+            p.x = newx + center.x;
+            p.y = newy + center.y;
+        }
+        
+    }
+    Poligon& operator=(const Poligon& other) {
+        if (this != &other) {
+            for (auto& p : other.points) {
+                points.push_back(p);
+            }
+        }
+        return *this;
+    }
+    void draw(sf::RenderWindow& window, int num, sf::Font& font) const override {
+
+        double maxX = points[0].x;
+        double minY = points[0].y;
+
+        for (size_t i = 0; i < points.size(); i++) {
+            size_t nextIndex = (i + 1) % points.size(); // Индекс следующей точки (для замыкания)
+
+            sf::VertexArray line(sf::Lines, 2);
+            line[0].position = sf::Vector2f(points[i].x, points[i].y);
+            line[1].position = sf::Vector2f(points[nextIndex].x, points[nextIndex].y);
+            line[0].color = Color::Black;
+            line[1].color = Color::Black;
+            window.draw(line);
+
+            maxX = std::max(maxX, points[i].x);
+            minY = std::min(minY, points[i].y);
+        }
+        
+
+        Text text;
+        text.setFont(font);
+        text.setScale(1 * global::size, -1 * global::size);
+        text.setPosition(maxX, minY);
+        text.setString("pl" + std::to_string(num));
+        text.setCharacterSize(15);
+        text.setFillColor(Color::Black);
+        window.draw(text);
+    }
+    double getArea() {
+        int size = points.size();
+        if (size == 0)
+            return 0;
+        double answ = 0;
+        for (int i = 0; i < size - 1; i++) {
+            answ += (points[i].x * points[i + 1].y - points[i].y * points[i + 1].x);
+        }
+        answ += (points[size - 1].x * points[0].y - points[size - 1].y * points[0].x);
+        return abs(answ) / 2;
     }
 };
 

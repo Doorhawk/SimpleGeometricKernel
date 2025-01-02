@@ -134,6 +134,46 @@ void commandProcessor(ShapeManager& shapeManager) {
 
                 
             }
+            else if (command == "poligon") {
+                int size = 0;
+                std::cin >> size;
+                std::cin >> command;
+                vector<Point> points;
+                if (command == "p") {
+                    for (int i = 0; i < size; i++) {
+                        int j = 0;
+                        std::cin >> j;
+                        auto shape = shapeManager.getBasicShape(j);
+                        if (!shape) {
+                            std::cout << "Invalid indices.\n";
+                            continue;
+                        }
+                        auto point1 = std::dynamic_pointer_cast<Point>(shape);
+                        if (point1) {
+                            points.push_back(*point1);
+                        }
+                        else {
+                            std::cout << "shapes must be points.\n";
+                        }
+                    }
+                    shapeManager.addBasicShape(Poligon(points));
+                    std::cout << "Poligon created.\n";
+                }
+                else if (command == "c") {
+                    for (int i = 0; i < size; i++) {
+                        float x, y;
+                        std::cin >> x >> y;
+                        //добавить проверку на верность введенных чи
+                        points.push_back(Point(x, y));
+                    }
+                    shapeManager.addBasicShape(Poligon(points));
+                    std::cout << "Poligon created.\n";
+                }
+                else {
+                    std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
+                    continue;
+                }
+            }
         }
         else if (command == "delete") {
             int i;
@@ -412,6 +452,12 @@ void commandProcessor(ShapeManager& shapeManager) {
                     shapeManager.addBasicShape(*circle);
                 }
             }
+            else if (command == "poligon") {
+                auto poligon = std::dynamic_pointer_cast<Poligon>(shape1);
+                if (poligon) {
+                    shapeManager.addBasicShape(*poligon);
+                }
+            }
             else {
                 std::cout << "Unsupported shapes " <<command<< endl;
             }
@@ -499,6 +545,22 @@ void commandProcessor(ShapeManager& shapeManager) {
             }
            
             shapeManager.addBasicShape(line->getPerpendicular(point));
+        }
+        else if (command == "area") {
+            int index;
+            cin >> index;
+            auto shape = shapeManager.getBasicShape(index);
+            if (!shape) {
+                cout << "Index error";
+                continue;
+            }
+            auto poligon = static_pointer_cast<Poligon>(shape);
+            if (poligon) {
+                cout << "Poligon " << index << " area = " << poligon->getArea() << endl;
+            }
+            else {
+                cout << "this is not poligon\n";
+            }
         }
         else if (command == "exit") {
             std::cout << "Exiting program...\n";
