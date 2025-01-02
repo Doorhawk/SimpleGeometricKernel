@@ -98,10 +98,41 @@ void commandProcessor(ShapeManager& shapeManager) {
                     std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
                     continue;
                 }
-                double radius;
-                cin >> radius;
-                // Создаем прямую между точками
-                shapeManager.addBasicShape(Circle(center, radius));
+
+                std::cin >> command;
+                if (command == "p") {
+                    int i;
+                    std::cin >> i;
+                    auto shape1 = shapeManager.getBasicShape(i);
+
+                    if (!shape1) {
+                        std::cout << "Invalid indices.\n";
+                        continue;
+                    }
+                    // Попытка привести фигуры к точкам
+                    auto point1 = std::dynamic_pointer_cast<Point>(shape1);
+
+                    if (point1) {
+                        Vector vec = (*point1 - center);
+                        // Создаем прямую между точками
+                        shapeManager.addBasicShape(Circle(center, vec.abs()));
+                    }
+                    else {
+                        std::cout << "Both shapes must be points.\n";
+                    }
+                }
+                else if (command == "c") {
+                    double radius;
+                    cin >> radius;
+                    // Создаем прямую между точками
+                    shapeManager.addBasicShape(Circle(center, radius));
+                }
+                else {
+                    std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
+                    continue;
+                }
+
+                
             }
         }
         else if (command == "delete") {
@@ -131,6 +162,7 @@ void commandProcessor(ShapeManager& shapeManager) {
                 continue;
             }
             double x, y;
+            // проверить введено ли чесло а не строка!!!
             std::cin >> x >> y;
             auto shape1 = shapeManager.getBasicShape(index1);
             if (!shape1) {
@@ -193,10 +225,12 @@ void commandProcessor(ShapeManager& shapeManager) {
 
             double angle;
             std::cin >> angle; // Считываем угол
+            // degree to rad
+            angle = angle / 180 * PI;
 
             shape->rotate(center, angle);
         }
-        else if (command == "inter") {
+        else if (command == "intersection") {
             std::string shapeType1, shapeType2;
             int index1, index2;
 
@@ -221,10 +255,10 @@ void commandProcessor(ShapeManager& shapeManager) {
                 auto line2 = std::dynamic_pointer_cast<Line>(shape2);
 
                 if (line1 && line2) {
-                    auto intersection = go::findIntersection(*line1, *line2);
-                    if (intersection) {
-                        std::cout << "Intersection found at: (" << intersection->getX() << ", " << intersection->getY() << ")\n";
-                        shapeManager.addBasicShape(*intersection);
+                    vector<Point> intersection = go::findIntersection(*line1, *line2);
+                    if (!intersection.empty()) {
+                        std::cout << "Intersection found at: (" << intersection[0].getX() << ", " << intersection[0].getY() << ")\n";
+                        shapeManager.addBasicShape(intersection[0]);
                     }
                     else {
                         std::cout << "No intersection found.\n";
@@ -232,6 +266,66 @@ void commandProcessor(ShapeManager& shapeManager) {
                 }
                 else {
                     std::cout << "One or both shapes are not lines.\n";
+                }
+            }
+            else if (shapeType1 == "line" && shapeType2 == "circle") {
+                auto line = std::dynamic_pointer_cast<Line>(shape1);
+                auto circle = std::dynamic_pointer_cast<Circle>(shape2);
+
+                if (line && circle) {
+                    vector<Point> intersection = go::findIntersection(*line, *circle);
+                    if (!intersection.empty()) {
+                        for (auto& inter : intersection) {
+                            std::cout << "Intersection found at: (" << inter.getX() << ", " << inter.getY() << ")\n";
+                            shapeManager.addBasicShape(inter);
+                        }
+                    }
+                    else {
+                        std::cout << "No intersection found.\n";
+                    }
+                }
+                else {
+                    std::cout << "One or both shapes are not lines and circle.\n";
+                }
+            }
+            else if (shapeType1 == "circle"&& shapeType2 == "line") {
+                auto line = std::dynamic_pointer_cast<Line>(shape2);
+                auto circle = std::dynamic_pointer_cast<Circle>(shape1);
+
+                if (line && circle) {
+                    vector<Point> intersection = go::findIntersection(*line, *circle);
+                    if (!intersection.empty()) {
+                        for (auto& inter : intersection) {
+                            std::cout << "Intersection found at: (" << inter.getX() << ", " << inter.getY() << ")\n";
+                            shapeManager.addBasicShape(inter);
+                        }
+                    }
+                    else {
+                        std::cout << "No intersection found.\n";
+                    }
+                }
+                else {
+                    std::cout << "One or both shapes are not circle and line.\n";
+                }
+            }
+            else if (shapeType2 == "circle" && shapeType1 == "circle") {
+                auto circle1 = std::dynamic_pointer_cast<Circle>(shape1);
+                auto circle2 = std::dynamic_pointer_cast<Circle>(shape2);
+
+                if (circle1 && circle2) {
+                    vector<Point> intersection = go::findIntersection(*circle1, *circle2);
+                    if (!intersection.empty()) {
+                        for (auto& inter : intersection) {
+                            std::cout << "Intersection found at: (" << inter.getX() << ", " << inter.getY() << ")\n";
+                            shapeManager.addBasicShape(inter);
+                        }
+                    }
+                    else {
+                        std::cout << "No intersection found.\n";
+                    }
+                }
+                else {
+                    std::cout << "One or both shapes are not circles.\n";
                 }
             }
             else {
@@ -261,7 +355,7 @@ void commandProcessor(ShapeManager& shapeManager) {
                 auto point = std::dynamic_pointer_cast<Point>(shape1);
                 auto line = std::dynamic_pointer_cast<Line>(shape2);
                 if (point && line) {
-                    cout << "distance between "<<index1<<" -> "<<index2<<" = " << go::distance(*point, *line) << endl;
+                    cout << "distance between " << index1 << " -> " << index2 << " = " << go::distance(*point, *line) << endl;
                 }
                 else {
                     std::cout << "One or both shapes are not lines.\n";
@@ -281,7 +375,7 @@ void commandProcessor(ShapeManager& shapeManager) {
                 auto point1 = std::dynamic_pointer_cast<Point>(shape1);
                 auto point2 = std::dynamic_pointer_cast<Point>(shape2);
                 if (point1 && point2) {
-                    cout << "distance between " << index1 << " -> " << index2 << " = " << go::distance(*point1, *point2)<<endl;
+                    cout << "distance between " << index1 << " -> " << index2 << " = " << go::distance(*point1, *point2) << endl;
                 }
                 else {
                     std::cout << "One or both shapes are not lines.\n";
@@ -290,7 +384,122 @@ void commandProcessor(ShapeManager& shapeManager) {
             else {
                 std::cout << "Unsupported combination of shapes: " << shapeType1 << " and " << shapeType2 << ".\n";
             }
+        }
+        else if (command == "copy") {
+            std::cin >> command;
+            int index1;
+            std::cin >> index1;
+            auto shape1 = shapeManager.getBasicShape(index1);
+            if (!shape1) {
+                std::cout << "Invalid indices.\n";
+                continue;
             }
+            if (command == "point") {
+                auto point = std::dynamic_pointer_cast<Point>(shape1);
+                if (point) {
+                    shapeManager.addBasicShape(*point);
+                }
+            }
+            else if (command == "line") {
+                auto line = std::dynamic_pointer_cast<Line>(shape1);
+                if (line) {
+                    shapeManager.addBasicShape(*line);
+                }
+            }
+            else if (command == "circle") {
+                auto circle = std::dynamic_pointer_cast<Circle>(shape1);
+                if (circle) {
+                    shapeManager.addBasicShape(*circle);
+                }
+            }
+            else {
+                std::cout << "Unsupported shapes " <<command<< endl;
+            }
+        }
+        else if (command == "parallel") {
+
+            int index;
+            cin >> index;
+            auto shapeLine = shapeManager.getBasicShape(index);
+            auto line = std::static_pointer_cast<Line>(shapeLine);
+            if (!line) {
+                cout << "not line at " << index<<endl;
+                continue;
+            }
+
+            std::string centerType;
+            std::cin >> centerType; // Определяем тип центра (c или p)
+
+            Point point;
+            if (centerType == "c") { // Центр задан координатами
+                float x, y;
+                std::cin >> x >> y;
+                point = { x, y };
+            }
+            else if (centerType == "p") { // Центр задан индексом точки
+                int centerIndex;
+                std::cin >> centerIndex;
+
+                auto centerShape = shapeManager.getBasicShape(centerIndex);
+                auto centerPoint = std::dynamic_pointer_cast<Point>(centerShape);
+
+                if (centerPoint) {
+                    point = *centerPoint;
+                }
+                else {
+                    std::cout << "Shape at index " << centerIndex << " is not a point.\n";
+                    continue;
+                }
+            }
+            else {
+                std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
+                continue;
+            }
+
+            shapeManager.addBasicShape(line->getParallel(point));
+        }
+        else if (command == "perpendicular") {
+
+            int index;
+            cin >> index;
+            auto shapeLine = shapeManager.getBasicShape(index);
+            auto line = std::static_pointer_cast<Line>(shapeLine);
+            if (!line) {
+                cout << "not line at " << index << endl;
+                continue;
+            }
+
+            std::string centerType;
+            std::cin >> centerType; // Определяем тип центра (c или p)
+
+            Point point;
+            if (centerType == "c") { // Центр задан координатами
+                float x, y;
+                std::cin >> x >> y;
+                point = { x, y };
+            }
+            else if (centerType == "p") { // Центр задан индексом точки
+                int centerIndex;
+                std::cin >> centerIndex;
+
+                auto centerShape = shapeManager.getBasicShape(centerIndex);
+                auto centerPoint = std::dynamic_pointer_cast<Point>(centerShape);
+
+                if (centerPoint) {
+                    point = *centerPoint;
+                }
+                else {
+                    std::cout << "Shape at index " << centerIndex << " is not a point.\n";
+                    continue;
+                }
+            }
+            else {
+                std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
+                continue;
+            }
+           
+            shapeManager.addBasicShape(line->getPerpendicular(point));
+        }
         else if (command == "exit") {
             std::cout << "Exiting program...\n";
             exit(0);
@@ -396,8 +605,17 @@ void commandProcessor(ShapeManager& shapeManager) {
 
 }
 
+
+// пересечение круга, дистанция до круга,
+// пусь положение найзвания прямой круга точик завист от индекса и вращается 
+// перпендигуляр и параллельные прямые в командПроцессор и в Класс лайн
+
+// Пусть в GO будут только общие операции типа булевых, а прямая паралельная данной ну это применимо тольок к прямой
+
 int main()
 {
+
+
 
     ShapeManager shapeManager;
 

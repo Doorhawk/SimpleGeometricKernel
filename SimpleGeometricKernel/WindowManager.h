@@ -76,8 +76,9 @@ public:
     WindowManager(ShapeManager& shapeManager) : shapeManager(shapeManager) {
         window.create(VideoMode(800, 800), "Scene");
         view.setSize(800.f, -800.f); // Инвертируем ось Y
-        //view.zoom(1./80);
         view.setCenter(0.f, 0.f); // Центрируем вид
+        global::size *= 0.1;
+        view.zoom(0.1);
         isDragging = false;
         if (!font.loadFromFile("arialmt.ttf")) {
             std::cout << "font errror";

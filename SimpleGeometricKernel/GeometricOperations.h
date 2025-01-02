@@ -1,9 +1,10 @@
 #pragma once
 #include <optional>
-
+#include <vector>
 
 class Point;
 class Line;
+class Circle;
 
 class go {
 private:
@@ -17,6 +18,8 @@ public:
 	static void move(Line& line, double dx, double dy);
 	static void rotate(Point& point, const Point& center, double angle);
 	static void rotate(Line& line, const Point& center, double angle);
+	static Line getParallel(const Line& line, const  Point& point);      // перенести в класс и добавить в интерфейс
+	static Line getPerpendicular(const Line& line, const  Point& point); // перенести в класс и добавить в интерфейс
 	//
 
 	// Нужны здесь, перенос в классы неудобен потому то функция взаимодействует с 2мя обьектами и в классе придется для каждой пары делать
@@ -24,13 +27,13 @@ public:
 	static double distance(const Line& line, const Point& point);       
 	static double distance(const Point& point, const Line& line);
 
-	static std::optional<Point> findIntersection(const Line& line1, const Line& line2);
+	static std::vector<Point> findIntersection(const Line& line1, const Line& line2);
+	static std::vector<Point> findIntersection(const Circle& circle, const Line& line);
+	static std::vector<Point> findIntersection(const Line& line, const Circle& circle);
+	static std::vector<Point> findIntersection(const Circle& circle1, const Circle& circle2);
 	//
 
-	// надо перенести 
-	static Line getParallel(const Line& line, const  Point& point);      // перенести в класс и добавить в интерфейс
-	static Line getPerpendicular(const Line& line, const  Point& point); // перенести в класс и добавить в интерфейс
-	//
+	
 }; 
 
 

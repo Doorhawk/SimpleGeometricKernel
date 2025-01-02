@@ -1,7 +1,15 @@
 #include "BasicShape.h"
 #include "GeometricOperations.h"
 
-double go::precision = 1e-6;
+// надо продумать файловую систему и раскичать по файлам BasicShape
+Point Point::operator+(const Vector& other) const {
+	return Point(x + other.x, y + other.y);
+}
+Point Point::operator-(const Vector& other) const {
+	return Point(x - other.x, y - other.y);
+}
+
+double go::precision = 1e-8;
 
 void go::setPrecision(double newPrecision) {
 	if (newPrecision <= 0) {
@@ -95,7 +103,7 @@ Line go::getPerpendicular(const Line& line, const  Point& point) {
 	return Line(p1 + point, point);
 }
 
-std::optional<Point> go::findIntersection(const Line& line1, const Line& line2) {
+std::vector<Point> go::findIntersection(const Line& line1, const Line& line2) {
 	double A1 = line1.p2.x - line1.p1.x;
 	double B1 = -(line2.p2.x - line2.p1.x);
 	double C1 = line2.p1.x - line1.p1.x;
@@ -106,8 +114,7 @@ std::optional<Point> go::findIntersection(const Line& line1, const Line& line2) 
 
 	double det = A1 * B2 - A2 * B1;
 	if (std::abs(det) < precision) {
-		// Прямые параллельны или совпадают
-		return std::nullopt;
+		return {};
 	}
 
 	double t = (C1 * B2 - C2 * B1) / det;
@@ -117,7 +124,7 @@ std::optional<Point> go::findIntersection(const Line& line1, const Line& line2) 
 	intersection.x = line1.p1.x + t * (line1.p2.x - line1.p1.x);
 	intersection.y = line1.p1.y + t * (line1.p2.y - line1.p1.y);
 
-	return intersection;
+	return { intersection };
 	/*
  * To find the intersection of two lines defined by two pairs of points:
  * Line 1: P1(x1, y1), P2(x2, y2)
@@ -169,4 +176,52 @@ std::optional<Point> go::findIntersection(const Line& line1, const Line& line2) 
  * - Use a precision threshold to check if D is close to 0, indicating parallel or overlapping lines.
  * - Return std::optional<Point> to handle cases where the lines do not intersect.
  */
+}
+
+std::vector<Point> go::findIntersection(const Circle& circle, const Line& line) {
+	if (go::distance(circle.cen, line)>circle.rad+precision) {
+		return {};
+	}
+	else if (go::distance(circle.cen, line) >= circle.rad) {
+		Line perpend = line.getPerpendicular(circle.cen);
+		vector<Point> inter = go::findIntersection(perpend, line);
+		return { inter[0] };
+	}
+	else {
+		Line perpend = line.getPerpendicular(circle.cen);
+		vector<Point> inter = go::findIntersection(perpend, line);
+
+		double dist = sqrt(circle.rad * circle.rad - Vector(circle.cen - inter[0]).abs()* Vector(circle.cen - inter[0]).abs());
+		Vector vec = line.p2 - line.p1;
+		vec = vec.normalize();
+		vec = vec * dist;
+
+		return { inter[0] + vec,inter[0] - vec };
+	}
+	return {};
+}
+std::vector<Point> go::findIntersection(const Line& line, const Circle& circle) {
+	return findIntersection(circle, line);
+}
+std::vector<Point> go::findIntersection(const Circle& circle1, const Circle& circle2) {
+	double d = go::distance(circle1.cen, circle2.cen);
+	if ( d > circle1.rad +circle2.rad+ precision||d< abs(circle1.rad - circle2.rad) - precision) {
+		return {};
+	}
+	else if (d >= circle1.rad + circle2.rad|| d <= abs(circle1.rad - circle2.rad)) {
+		Vector vec = (circle2.cen - circle1.cen);
+		vec = vec.normalize();
+		vec = vec * circle1.rad;
+		return { circle1.cen+vec };
+	}
+	else {
+		double a = (circle1.rad * circle1.rad - circle2.rad * circle2.rad + d * d) / (2 * d);
+		double h = sqrt(circle1.rad * circle1.rad - a * a);
+		Point p3 = circle1.cen + (circle2.cen - circle1.cen) * (a/d);
+		
+		Point in1 = { p3.x + h * (circle2.cen.y - circle1.cen.y) / d, p3.y - h * (circle2.cen.x - circle1.cen.x) / d };
+		Point in2 = { p3.x - h * (circle2.cen.y - circle1.cen.y) / d, p3.y + h * (circle2.cen.x - circle1.cen.x) / d };
+		return { in1,in2 };
+	}
+	return {};
 }
