@@ -82,6 +82,9 @@ public:
     Point operator*(double scalar) const {
         return(Point(x * scalar, y * scalar));
     }
+    bool operator==(const Point& other) const {
+        return (x == other.x) && (y == other.y);
+    }
     double getX() const {
         return x;
     }
@@ -149,14 +152,15 @@ public:
 class Line : public BasicShape {
 private:
     Point p1,p2;
+    bool isSegment;
     friend class go;
-    double fun(double x) {
+    double fun(double x) const{
         return (x - p1.x) * (p2.y - p1.y) / (p2.x - p1.x) + p1.y;
     }
 public:
-    Line() :p1({ 0,0 }), p2({1,1}) {}
-    Line(Point p1, Point p2) :p1(p1), p2(p2) {}
-    Line(const Line& other) :p1(other.p1), p2(other.p2) {}
+    Line() :p1({ 0,0 }), p2({1,1}),isSegment(false) {}
+    Line(Point p1, Point p2,bool isSegment = false) :p1(p1), p2(p2),isSegment(isSegment) {}
+    Line(const Line& other) :p1(other.p1), p2(other.p2),isSegment(other.isSegment) {}
     void printInf() const override {
         cout << "line: (" << p1.x << ", " << p1.y << ") " << p2.x << ", " << p2.y << ")" <<endl;
     }
@@ -203,30 +207,58 @@ public:
         return *this;
     }
     void draw(sf::RenderWindow& window, int num, sf::Font& font) const override {
-        View view = window.getView();
-        float size = view.getSize().x + abs(view.getCenter().x) * 2 + abs(view.getCenter().y) * 2;
-        sf::VertexArray line(sf::Lines);
-        if ((p2.x - p1.x) != 0) {
-            float ysize = (size - p1.x) * (p2.y - p1.y) / (p2.x - p1.x) + p1.y;
-            float y_size = (-size - p1.x) * (p2.y - p1.y) / (p2.x - p1.x) + p1.y;
-            line.append(sf::Vertex(sf::Vector2f(size, ysize), Color::Black)); // Левая граница
-            line.append(sf::Vertex(sf::Vector2f(-size, y_size), Color::Black));  // Правая граница
+        if (isSegment) {
+            sf::VertexArray line(sf::Lines, 2);
+            line[0].position = sf::Vector2f(p1.x, p1.y);
+            line[1].position = sf::Vector2f(p2.x, p2.y);
+            line[0].color = Color::Black;
+            line[1].color = Color::Black;
+            window.draw(line);
         }
         else {
-            line.append(sf::Vertex(sf::Vector2f(p1.x, size), Color::Black)); // Левая граница
-            line.append(sf::Vertex(sf::Vector2f(p1.x, -size), Color::Black));
+            View view = window.getView();
+            float size = view.getSize().x + abs(view.getCenter().x) * 2 + abs(view.getCenter().y) * 2;
+            sf::VertexArray line(sf::Lines);
+            if ((p2.x - p1.x) != 0) {
+                float ysize = (size - p1.x) * (p2.y - p1.y) / (p2.x - p1.x) + p1.y;
+                float y_size = (-size - p1.x) * (p2.y - p1.y) / (p2.x - p1.x) + p1.y;
+                line.append(sf::Vertex(sf::Vector2f(size, ysize), Color::Black)); // Левая граница
+                line.append(sf::Vertex(sf::Vector2f(-size, y_size), Color::Black));  // Правая граница
+            }
+            else {
+                line.append(sf::Vertex(sf::Vector2f(p1.x, size), Color::Black)); // Левая граница
+                line.append(sf::Vertex(sf::Vector2f(p1.x, -size), Color::Black));
+            }
+            window.draw(line);
         }
-        window.draw(line);
 
+        
         Text text;
         text.setFont(font);
         text.setScale(1 * global::size, -1 * global::size);
-        text.setPosition(p1.x + 15 * global::size, p1.y + 15 * global::size);
+        Point mid = go::findMiddle(p1, p2);
+        text.setPosition(mid.x + 15 * global::size, mid.y + 15 * global::size);
         text.setString("L" + std::to_string(num));
         text.setCharacterSize(15);
         text.setFillColor(Color::Black);
         window.draw(text);
 
+    }
+    vector<Line> divide(const Point& point) const {
+        if (!isSegment)
+            return {};
+        if (point == p1 || point == p2) {
+            return {};
+        }
+        if (fun(point.x) < point.y + go::getPrecision() && fun(point.x) > point.y - go::getPrecision()) {
+            return { Line(p1,point,true),Line(point,p2,true) };
+        }
+        else {
+            return {};
+        }
+    }
+    bool getIsSegment(){
+        return isSegment;
     }
 };
 
@@ -234,17 +266,21 @@ class Circle : public BasicShape{
 private:
     Point cen;
     double rad;
+    double endAngle,startAngle;
     friend class go;
 public:
-    Circle() :cen({ 0,0 }), rad(1) {}
-    Circle(Point cen, double rad) :cen(cen), rad(rad) {}
+    Circle() :cen({ 0,0 }), rad(1), startAngle(0), endAngle(360){}
+    Circle(Point cen, double rad) :cen(cen), rad(rad), startAngle(0), endAngle(360) {}
     Circle(Point _cen, Point _point){
         cen = _cen;
         rad = Vector(cen - _point).abs();
+        startAngle = 0;
+        endAngle = 360;
     }
-    Circle(const Circle& other) :cen(other.cen), rad(other.rad) {}
+    Circle(const Circle& other) :cen(other.cen), rad(other.rad), startAngle(other.startAngle), endAngle(other.endAngle) {}
     void printInf() const override {
         cout << "circle: center (" << cen.x << ", " << cen.y << "), radius = "<<rad <<  endl;
+        // добавить про углы
     }
     void move(double dx, double dy) override {
         cen.x += dx;
@@ -268,14 +304,46 @@ public:
         return *this;
     }
     void draw(sf::RenderWindow& window, int num, sf::Font& font) const override {
-        sf::CircleShape shape(rad); // Радиус круга
-        int pointAtCircle = std::min(100, std::max(20, static_cast<int>(20 / global::size))); // min 20 -> max 100
-        shape.setPointCount(pointAtCircle); // точек на круг
-        shape.setPosition(cen.x-rad,cen.y-rad); // Устанавливаем позицию круга
-        shape.setFillColor(sf::Color::Transparent); // Убираем заливку
-        shape.setOutlineThickness(1.f*global::size); // Устанавливаем толщину контура
-        shape.setOutlineColor(sf::Color::Black); // Устанавливаем цвет контура
-        window.draw(shape);
+        int pointCount = 50;
+        // Создаем массив вершин (тип треугольный фан)
+        sf::VertexArray sector(sf::Lines, pointCount);
+
+       
+        
+        // Вычисляем точки сектора
+        float angleStep = (endAngle - startAngle) / pointCount; // Шаг между углами
+        for (int i = 0; i < pointCount; ++i) {
+            sf::VertexArray line(sf::Lines, 2);
+            size_t nextIndex = (i + 1) % pointCount; // Индекс следующей точки (для замыкания)
+
+            float angle = startAngle + i * angleStep;
+            float x1 = cen.x + rad * std::cos(angle * acos(-1) / 180.0f);
+            float y1 = cen.y + rad * std::sin(angle * acos(-1) / 180.0f);
+            line[0].position = sf::Vector2f(x1, y1);
+            angle = startAngle + (i+1) * angleStep;
+            x1 = cen.x + rad * std::cos(angle * acos(-1) / 180.0f);
+            y1 = cen.y + rad * std::sin(angle * acos(-1) / 180.0f);
+            line[1].position = sf::Vector2f(x1,y1);
+            
+            
+            
+            line[0].color = Color::Black;
+            line[1].color = Color::Black;
+
+            window.draw(line);
+        }
+
+    
+
+
+        //sf::CircleShape shape(rad); // Радиус круга
+        //int pointAtCircle = std::min(100, std::max(20, static_cast<int>(20 / global::size))); // min 20 -> max 100
+        //shape.setPointCount(pointAtCircle); // точек на круг
+        //shape.setPosition(cen.x-rad,cen.y-rad); // Устанавливаем позицию круга
+        //shape.setFillColor(sf::Color::Transparent); // Убираем заливку
+        //shape.setOutlineThickness(1.f*global::size); // Устанавливаем толщину контура
+        //shape.setOutlineColor(sf::Color::Black); // Устанавливаем цвет контура
+        //window.draw(shape);
 
         Text text;
         text.setFont(font);

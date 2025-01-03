@@ -225,3 +225,7 @@ std::vector<Point> go::findIntersection(const Circle& circle1, const Circle& cir
 	}
 	return {};
 }
+
+Point go::findMiddle(const Point& point1, const Point& point2) {
+	return Point((point2.x + point1.x) / 2, (point2.y + point1.y) / 2);
+}

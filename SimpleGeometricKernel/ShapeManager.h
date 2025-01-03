@@ -2,32 +2,58 @@
 #include <vector>
 #include "BasicShape.h"
 #include <unordered_map>
+#include <mutex>
+#include <condition_variable>
 
 class ShapeManager {
 private:
+    std::mutex shapesMutex;
+    std::condition_variable cv;
+    bool allDrowed = false;
+    bool shapesModified = true;
     std::unordered_map<int, std::shared_ptr<BasicShape>> shapes; // ’ранение фигур по их индексам
     int nextIndex = 0; // »ндекс дл€ следующей фигуры
 public:
     template <typename T, typename = std::enable_if_t<std::is_base_of_v<BasicShape, T>>>
     int addBasicShape(const T& shape) {
+        shapesModified = false;
+        std::unique_lock<std::mutex> lock(shapesMutex);
+        cv.wait(lock, [this] { return allDrowed; }); // ∆дЄм завершени€ кадра
         auto ptr = std::make_shared<T>(shape);
         if (ptr) {
             shapes[nextIndex] = ptr; 
+            shapesModified = true;
+            cv.notify_all();
             return nextIndex++; 
         }
         else {
             std::cerr << "Error: Attempting to add an invalid shape.\n";
+            shapesModified = true;
+            cv.notify_all();
             return -1;
         }
     }
 
-    void removeBasicShape(size_t index) {
+    bool removeBasicShape(size_t index) {
+        shapesModified = false;
+        std::unique_lock<std::mutex> lock(shapesMutex);
+        cv.wait(lock, [this] { return allDrowed; }); // ∆дЄм завершени€ кадра
+
         if (shapes.erase(index) == 0) {
             cout << "index out of range\n";
+            shapesModified = true;
+            cv.notify_all();
+            return false;
         }
+        shapesModified = true;
+        cv.notify_all();
+        return true;
     }
 
     void drawAll(sf::RenderWindow& window,Font font) {
+        std::unique_lock<std::mutex> lock(shapesMutex);
+        cv.wait(lock, [this] { return shapesModified; });
+        allDrowed = false;
         for (const auto& [index, shape] : shapes) {
             try {
                 if (shape) {
@@ -45,6 +71,8 @@ public:
                 std::cerr << "Unknown exception during draw. Skipping this shape.\n";
             }
         }
+        allDrowed = true;
+        cv.notify_all();
     }
 
     std::shared_ptr<BasicShape> getBasicShape(int index) const {
