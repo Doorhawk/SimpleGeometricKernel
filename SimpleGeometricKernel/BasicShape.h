@@ -13,7 +13,16 @@ class Vector;
 
 class BasicShape {
 private:
+    string type;
+protected:
+    void setType(const string& newType){
+        type = newType;
+    }
 public:
+    BasicShape(const string& type = "Unknown") :type(type){}
+    string getType() const {
+        return type;
+    }
     virtual void draw(sf::RenderWindow& window, int num, sf::Font& font) const = 0; // Метод отрисовки virtual => у каждого потомка свой должен быть оперделен
     virtual void printInf() const = 0; 
     virtual void move(double dx, double dy) = 0; 
@@ -31,8 +40,8 @@ private:
     friend class Sector;
     friend class Poligon;
 public:
-    Point(double x = 0, double y = 0) :x(x), y(y) {}
-    Point(const Point& other) :x(other.x), y(other.y) {}
+    Point(double x = 0, double y = 0) :BasicShape("point"),x(x), y(y) {}
+    Point(const Point& other) : BasicShape("point"),x(other.x), y(other.y) {}
     void draw(sf::RenderWindow& window, int num, Font& font) const override {
         float r = 3.f * global::size;
         CircleShape point(r);
@@ -151,7 +160,7 @@ public:
 };
 
 
-class Line : public BasicShape {
+class Line : public virtual BasicShape {
 protected:
     Point p1,p2;
     friend class go;
@@ -159,9 +168,9 @@ protected:
         return (x - p1.x) * (p2.y - p1.y) / (p2.x - p1.x) + p1.y;
     }
 public:
-    Line() :p1({ 0,0 }), p2({1,1}) {}
-    Line(Point p1, Point p2) :p1(p1), p2(p2) {}
-    Line(const Line& other) :p1(other.p1), p2(other.p2) {}
+    Line() :BasicShape("line"),p1({ 0,0 }), p2({1,1}) {}
+    Line(Point p1, Point p2) :BasicShape("line"),p1(p1), p2(p2) {}
+    Line(const Line& other) :BasicShape(other.getType()),p1(other.p1), p2(other.p2) {}
     // созданиелинии по сегменту, но это когда в отдеьные файлы запихаю всё
     virtual void printInf() const override {
         cout << "line: (" << p1.x << ", " << p1.y << ") " << p2.x << ", " << p2.y << ")" <<endl;
@@ -234,10 +243,10 @@ class Segment : public Line {
 private:
     friend class go;
 public:
-    Segment() :Line(Point(0, 0), Point(1, 1)) {}
-    Segment(Point p1, Point p2) : Line(p1, p2) {}
-    Segment(const Segment& other) :Line(other.p1, other.p2) {};
-    Segment(const Line& other) :Line(other.getStart(), other.getEnd()) {};
+    Segment() :Line(Point(0, 0), Point(1, 1)), BasicShape("segment") {}
+    Segment(Point p1, Point p2) : Line(p1, p2), BasicShape("segment") {}
+    Segment(const Segment& other) :Line(other.p1, other.p2), BasicShape("segment") {};
+    Segment(const Line& other) :Line(other.getStart(), other.getEnd()), BasicShape("segment") {};
 
     void printInf() const override {
         cout << "Sector: (" << p1.x << ", " << p1.y << ") " << p2.x << ", " << p2.y << ")" << endl;
@@ -276,7 +285,7 @@ public:
     
 };
 
-class Circle : public BasicShape{
+class Circle : public virtual BasicShape{
 private:
     Point cen;
     double rad;
@@ -289,9 +298,9 @@ protected:
         rad = newRadius;
     }
 public:
-    Circle() :cen({ 0,0 }), rad(1){}
-    Circle(Point cen, double rad) :cen(cen), rad(rad) {}
-    Circle(Point _cen, Point _point){
+    Circle() : BasicShape("circle"),cen({ 0,0 }), rad(1) {}
+    Circle(Point cen, double rad) :BasicShape("circle"),cen(cen), rad(rad)  {}
+    Circle(Point _cen, Point _point):BasicShape("circle") {
         cen = _cen;
         rad = Vector(cen - _point).abs();
     }
@@ -347,10 +356,10 @@ private:
     friend class go;
     // нужна проверка что разница углов не более 360, ну или если больше то вычитаем из каждого по 360 привести в норму
 public:
-    Sector() :Circle(Point(0, 0), 1), startAngle(0), endAngle(acos(-1)) {}
-    Sector(Point cen, double rad, double startAngle, double endAngle) :Circle(cen, rad), startAngle(startAngle), endAngle(endAngle) {}
-    Sector(Point cen, Point point, double startAngle, double endAngle) :Circle(cen, Vector(cen - point).abs()), startAngle(startAngle), endAngle(endAngle) {}
-    Sector(const Sector& other) :Circle(other.getCenter(), other.getRadius()), startAngle(other.startAngle), endAngle(other.endAngle) {}
+    Sector() :Circle(Point(0, 0), 1),BasicShape("sector"), startAngle(0), endAngle(acos(-1)) {}
+    Sector(Point cen, double rad, double startAngle, double endAngle) :Circle(cen, rad), BasicShape("sector"), startAngle(startAngle), endAngle(endAngle) {}
+    Sector(Point cen, Point point, double startAngle, double endAngle) :Circle(cen, Vector(cen - point).abs()), BasicShape("sector"), startAngle(startAngle), endAngle(endAngle) {}
+    Sector(const Sector& other) :Circle(other.getCenter(), other.getRadius()), BasicShape("sector"), startAngle(other.startAngle), endAngle(other.endAngle) {}
     void printInf() const override {
         cout << "secrot: center (" << getCenter().x << ", " << getCenter().y << "), radius = " << getRadius() << ", endAngle = " << endAngle << ", startAngle = " << startAngle << endl;
     }
@@ -415,11 +424,11 @@ public:
         text.setFillColor(Color::Black);
         window.draw(text);
     }
-    Point getStartPoint() {
+    Point getStartPoint() const {
         Point stp = getCenter() + Point(getRadius() * cos(startAngle), getRadius() * sin(startAngle));
         return stp;
     }
-    Point getEndPoint() {
+    Point getEndPoint() const {
         Point enp = getCenter() + Point(getRadius() * cos(endAngle), getRadius() * sin(endAngle));
         return enp;
     }
@@ -431,9 +440,9 @@ private:
     vector<Point> points;
     friend class go;
 public:
-    Poligon() :points({}) {}
-    Poligon(vector<Point>& vec) : points(vec) {}
-    Poligon(const Poligon& other) :points(other.points) {}
+    Poligon() :points({}), BasicShape("poligon") {}
+    Poligon(vector<Point>& vec) :BasicShape("poligon"), points(vec) {}
+    Poligon(const Poligon& other) :BasicShape("poligon"),points(other.points) {}
 
     void printInf() const override {
         cout << "poligon: \n";

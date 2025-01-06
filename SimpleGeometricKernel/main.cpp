@@ -284,17 +284,16 @@ void commandProcessor(ShapeManager& shapeManager) {
             }
         }
         else if (command == "addMarkers") {
-            std::cin >> command;
-            if (command == "segment") {
-                int i;
-                std::cin >> i;
-                auto shape1 = shapeManager.getBasicShape(i);
-                if (!shape1) {
-                    std::cout << "Invalid indices.\n";
-                    continue;
-                }
+            int i;
+            std::cin >> i;
+            auto shape1 = shapeManager.getBasicShape(i);
+            if (!shape1) {
+                std::cout << "Invalid indices.\n";
+                continue;
+            }
+            string type = shape1->getType();
+            if (type == "segment") {
                 auto seg = std::dynamic_pointer_cast<Segment>(shape1);
-
                 if (seg) {
                     // Создаем прямую между точками
                     shapeManager.addBasicShape(seg->getStart());
@@ -304,16 +303,8 @@ void commandProcessor(ShapeManager& shapeManager) {
                     std::cout << "It must be segment.\n";
                 }
             }
-            else if (command == "circle") {
-                int i;
-                std::cin >> i;
-                auto shape1 = shapeManager.getBasicShape(i);
-                if (!shape1) {
-                    std::cout << "Invalid indices.\n";
-                    continue;
-                }
+            else if (type == "circle") {
                 auto cir = std::dynamic_pointer_cast<Circle>(shape1);
-
                 if (cir) {
                     // Создаем прямую между точками
                     shapeManager.addBasicShape(cir->getCenter());
@@ -323,14 +314,8 @@ void commandProcessor(ShapeManager& shapeManager) {
                 }
 
             }
-            else if (command == "sector") {
-                int i;
-                std::cin >> i;
-                auto shape1 = shapeManager.getBasicShape(i);
-                if (!shape1) {
-                    std::cout << "Invalid indices.\n";
-                    continue;
-                }
+            else if (type == "sector") {
+                
                 auto sec = std::dynamic_pointer_cast<Sector>(shape1);
 
                 if (sec) {
@@ -343,14 +328,8 @@ void commandProcessor(ShapeManager& shapeManager) {
                     std::cout << "It must be circle.\n";
                 }
             }
-            else if (command == "poligon") {
-                int i;
-                std::cin >> i;
-                auto shape1 = shapeManager.getBasicShape(i);
-                if (!shape1) {
-                    std::cout << "Invalid indices.\n";
-                    continue;
-                }
+            else if (type == "poligon") {
+                
                 auto poli = std::dynamic_pointer_cast<Poligon>(shape1);
 
                 if (poli) {
@@ -658,10 +637,8 @@ void commandProcessor(ShapeManager& shapeManager) {
             int index;
             cin >> index;
             auto shapeLine = shapeManager.getBasicShape(index);
-            auto line = std::dynamic_pointer_cast<Line>(shapeLine);
-            if (!line) {
-                cout << "not line at " << index<<endl;
-                continue;
+            if (!shapeLine) {
+                cout << "invalid index\n";
             }
 
             std::string centerType;
@@ -693,17 +670,32 @@ void commandProcessor(ShapeManager& shapeManager) {
                 continue;
             }
 
-            shapeManager.addBasicShape(line->getParallel(point));
+            if (shapeLine->getType() == "line") {
+                auto line = std::dynamic_pointer_cast<Line>(shapeLine);
+                if (!line) {
+                    cout << "not line at " << index << endl;
+                    continue;
+                }
+                shapeManager.addBasicShape(line->getParallel(point));
+            }
+            else if(shapeLine->getType() == "segment"){
+                auto sec = std::dynamic_pointer_cast<Segment>(shapeLine);
+                if (!sec) {
+                    cout << "not line at " << index << endl;
+                    continue;
+                }
+                shapeManager.addBasicShape(sec->getParallel(point));
+            }
+
+            
         }
         else if (command == "perpendicular") {
 
             int index;
             cin >> index;
             auto shapeLine = shapeManager.getBasicShape(index);
-            auto line = std::dynamic_pointer_cast<Line>(shapeLine);
-            if (!line) {
-                cout << "not line at " << index << endl;
-                continue;
+            if (!shapeLine) {
+                cout << "invalid index\n";
             }
 
             std::string centerType;
@@ -734,8 +726,23 @@ void commandProcessor(ShapeManager& shapeManager) {
                 std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
                 continue;
             }
-           
-            shapeManager.addBasicShape(line->getPerpendicular(point));
+            if (shapeLine->getType() == "line") {
+                auto line = std::dynamic_pointer_cast<Line>(shapeLine);
+                if (!line) {
+                    cout << "not line at " << index << endl;
+                    continue;
+                }
+                shapeManager.addBasicShape(line->getPerpendicular(point));
+            }
+            else if (shapeLine->getType() == "segment") {
+                auto sec = std::dynamic_pointer_cast<Segment>(shapeLine);
+                if (!sec) {
+                    cout << "not line at " << index << endl;
+                    continue;
+                }
+                shapeManager.addBasicShape(sec->getPerpendicular(point));
+            }
+            
         }
         else if (command == "middle") {
             string type = "";
