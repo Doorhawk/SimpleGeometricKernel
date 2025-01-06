@@ -26,7 +26,9 @@ private:
     double x, y;
     friend class go;
     friend class Line;
+    friend class Segment;
     friend class Circle;
+    friend class Sector;
     friend class Poligon;
 public:
     Point(double x = 0, double y = 0) :x(x), y(y) {}
@@ -150,44 +152,27 @@ public:
 
 
 class Line : public BasicShape {
-private:
+protected:
     Point p1,p2;
-    bool isSegment;
     friend class go;
     double fun(double x) const{
         return (x - p1.x) * (p2.y - p1.y) / (p2.x - p1.x) + p1.y;
     }
 public:
-    Line() :p1({ 0,0 }), p2({1,1}),isSegment(false) {}
-    Line(Point p1, Point p2,bool isSegment = false) :p1(p1), p2(p2),isSegment(isSegment) {}
-    Line(const Line& other) :p1(other.p1), p2(other.p2),isSegment(other.isSegment) {}
-    void printInf() const override {
+    Line() :p1({ 0,0 }), p2({1,1}) {}
+    Line(Point p1, Point p2) :p1(p1), p2(p2) {}
+    Line(const Line& other) :p1(other.p1), p2(other.p2) {}
+    // созданиелинии по сегменту, но это когда в отдеьные файлы запихаю всё
+    virtual void printInf() const override {
         cout << "line: (" << p1.x << ", " << p1.y << ") " << p2.x << ", " << p2.y << ")" <<endl;
     }
     void move(double dx, double dy) override {
-        p1.x += dx;
-        p2.x += dx;
-        p1.y += dy;
-        p2.y += dy;
+        p1.move(dx,dy);
+        p2.move(dx,dy);
     }
     void rotate(const Point& center, double angle) override {
-        p1.x -= center.x;
-        p1.y -= center.y;
-
-        double newx = cos(angle) * p1.x - sin(angle) * p1.y;
-        double newy = sin(angle) * p1.x + cos(angle) * p1.y;
-
-        p1.x = newx + center.x;
-        p1.y = newy + center.y;
-
-        p2.x -= center.x;
-        p2.y -= center.y;
-
-        newx = cos(angle) * p2.x - sin(angle) * p2.y;
-        newy = sin(angle) * p2.x + cos(angle) * p2.y;
-
-        p2.x = newx + center.x;
-        p2.y = newy + center.y;
+        p1.rotate(center, angle);
+        p2.rotate(center, angle);
     }
     Line getParallel(const Point& point) const {
         Point p = point;
@@ -206,16 +191,14 @@ public:
         }
         return *this;
     }
-    void draw(sf::RenderWindow& window, int num, sf::Font& font) const override {
-        if (isSegment) {
-            sf::VertexArray line(sf::Lines, 2);
-            line[0].position = sf::Vector2f(p1.x, p1.y);
-            line[1].position = sf::Vector2f(p2.x, p2.y);
-            line[0].color = Color::Black;
-            line[1].color = Color::Black;
-            window.draw(line);
-        }
-        else {
+    Point getStart() const {
+        return p1;
+    }
+    Point getEnd() const {
+        return p2;
+    }
+    virtual void draw(sf::RenderWindow& window, int num, sf::Font& font) const override {
+       
             View view = window.getView();
             float size = view.getSize().x + abs(view.getCenter().x) * 2 + abs(view.getCenter().y) * 2;
             sf::VertexArray line(sf::Lines);
@@ -230,7 +213,7 @@ public:
                 line.append(sf::Vertex(sf::Vector2f(p1.x, -size), Color::Black));
             }
             window.draw(line);
-        }
+        
 
         
         Text text;
@@ -244,57 +227,84 @@ public:
         window.draw(text);
 
     }
-    vector<Line> divide(const Point& point) const {
-        if (!isSegment)
-            return {};
+ 
+};
+
+class Segment : public Line {
+private:
+    friend class go;
+public:
+    Segment() :Line(Point(0, 0), Point(1, 1)) {}
+    Segment(Point p1, Point p2) : Line(p1, p2) {}
+    Segment(const Segment& other) :Line(other.p1, other.p2) {};
+    Segment(const Line& other) :Line(other.getStart(), other.getEnd()) {};
+
+    void printInf() const override {
+        cout << "Sector: (" << p1.x << ", " << p1.y << ") " << p2.x << ", " << p2.y << ")" << endl;
+    }
+    vector<Segment> divide(const Point& point) const {
         if (point == p1 || point == p2) {
             return {};
         }
         if (fun(point.x) < point.y + go::getPrecision() && fun(point.x) > point.y - go::getPrecision()) {
-            return { Line(p1,point,true),Line(point,p2,true) };
+            return { Segment(p1,point),Segment(point,p2) };
         }
         else {
             return {};
         }
     }
-    bool getIsSegment(){
-        return isSegment;
+    void draw(sf::RenderWindow& window, int num, sf::Font& font) const override {
+
+        sf::VertexArray line(sf::Lines, 2);
+        line[0].position = sf::Vector2f(p1.x, p1.y);
+        line[1].position = sf::Vector2f(p2.x, p2.y);
+        line[0].color = Color::Black;
+        line[1].color = Color::Black;
+        window.draw(line);
+
+        Text text;
+        text.setFont(font);
+        text.setScale(1 * global::size, -1 * global::size);
+        Point mid = go::findMiddle(p1, p2);
+        text.setPosition(mid.x + 15 * global::size, mid.y - 15 * global::size);
+        text.setString("sg" + std::to_string(num));
+        text.setCharacterSize(15);
+        text.setFillColor(Color::Black);
+        window.draw(text);
+
     }
+    
 };
 
 class Circle : public BasicShape{
 private:
     Point cen;
     double rad;
-    double endAngle,startAngle;
     friend class go;
+protected:
+    void setCenter(const Point& newCenter) {
+        cen = newCenter;
+    }
+    void setRadius(double newRadius) {
+        rad = newRadius;
+    }
 public:
-    Circle() :cen({ 0,0 }), rad(1), startAngle(0), endAngle(360){}
-    Circle(Point cen, double rad) :cen(cen), rad(rad), startAngle(0), endAngle(360) {}
+    Circle() :cen({ 0,0 }), rad(1){}
+    Circle(Point cen, double rad) :cen(cen), rad(rad) {}
     Circle(Point _cen, Point _point){
         cen = _cen;
         rad = Vector(cen - _point).abs();
-        startAngle = 0;
-        endAngle = 360;
     }
-    Circle(const Circle& other) :cen(other.cen), rad(other.rad), startAngle(other.startAngle), endAngle(other.endAngle) {}
-    void printInf() const override {
+    Circle(const Circle& other) :cen(other.cen), rad(other.rad) {}
+    virtual void printInf() const override {
         cout << "circle: center (" << cen.x << ", " << cen.y << "), radius = "<<rad <<  endl;
-        // добавить про углы
+   
     }
     void move(double dx, double dy) override {
-        cen.x += dx;
-        cen.y += dy;
+        cen.move(dx, dy);
     }
-    void rotate(const Point& center, double angle) override {
-        cen.x -= center.x;
-        cen.y -= center.y;
-
-        double newx = cos(angle) * cen.x - sin(angle) * cen.y;
-        double newy = sin(angle) * cen.x + cos(angle) * cen.y;
-
-        cen.x = newx + center.x;
-        cen.y = newy + center.y;
+    virtual void rotate(const Point& center, double angle) override {
+        cen.rotate(center, angle);
     }
     Circle& operator=(const Circle& other) {
         if (this != &other) {
@@ -303,47 +313,16 @@ public:
         }
         return *this;
     }
-    void draw(sf::RenderWindow& window, int num, sf::Font& font) const override {
-        int pointCount = 50;
-        // Создаем массив вершин (тип треугольный фан)
-        sf::VertexArray sector(sf::Lines, pointCount);
-
-       
+    virtual void draw(sf::RenderWindow& window, int num, sf::Font& font) const override {
         
-        // Вычисляем точки сектора
-        float angleStep = (endAngle - startAngle) / pointCount; // Шаг между углами
-        for (int i = 0; i < pointCount; ++i) {
-            sf::VertexArray line(sf::Lines, 2);
-            size_t nextIndex = (i + 1) % pointCount; // Индекс следующей точки (для замыкания)
-
-            float angle = startAngle + i * angleStep;
-            float x1 = cen.x + rad * std::cos(angle * acos(-1) / 180.0f);
-            float y1 = cen.y + rad * std::sin(angle * acos(-1) / 180.0f);
-            line[0].position = sf::Vector2f(x1, y1);
-            angle = startAngle + (i+1) * angleStep;
-            x1 = cen.x + rad * std::cos(angle * acos(-1) / 180.0f);
-            y1 = cen.y + rad * std::sin(angle * acos(-1) / 180.0f);
-            line[1].position = sf::Vector2f(x1,y1);
-            
-            
-            
-            line[0].color = Color::Black;
-            line[1].color = Color::Black;
-
-            window.draw(line);
-        }
-
-    
-
-
-        //sf::CircleShape shape(rad); // Радиус круга
-        //int pointAtCircle = std::min(100, std::max(20, static_cast<int>(20 / global::size))); // min 20 -> max 100
-        //shape.setPointCount(pointAtCircle); // точек на круг
-        //shape.setPosition(cen.x-rad,cen.y-rad); // Устанавливаем позицию круга
-        //shape.setFillColor(sf::Color::Transparent); // Убираем заливку
-        //shape.setOutlineThickness(1.f*global::size); // Устанавливаем толщину контура
-        //shape.setOutlineColor(sf::Color::Black); // Устанавливаем цвет контура
-        //window.draw(shape);
+        sf::CircleShape shape(rad); // Радиус круга
+        int pointAtCircle = std::min(100, std::max(20, static_cast<int>(20 / global::size))); // min 20 -> max 100
+        shape.setPointCount(pointAtCircle); // точек на круг
+        shape.setPosition(cen.x-rad,cen.y-rad); // Устанавливаем позицию круга
+        shape.setFillColor(sf::Color::Transparent); // Убираем заливку
+        shape.setOutlineThickness(1.f*global::size); // Устанавливаем толщину контура
+        shape.setOutlineColor(sf::Color::Black); // Устанавливаем цвет контура
+        window.draw(shape);
 
         Text text;
         text.setFont(font);
@@ -354,7 +333,98 @@ public:
         text.setFillColor(Color::Black);
         window.draw(text);
     }
+    Point getCenter() const {
+        return cen;
+    }
+    double getRadius() const {
+        return rad;
+    }
 };
+
+class Sector : public Circle {
+private:
+    double endAngle, startAngle;
+    friend class go;
+    // нужна проверка что разница углов не более 360, ну или если больше то вычитаем из каждого по 360 привести в норму
+public:
+    Sector() :Circle(Point(0, 0), 1), startAngle(0), endAngle(acos(-1)) {}
+    Sector(Point cen, double rad, double startAngle, double endAngle) :Circle(cen, rad), startAngle(startAngle), endAngle(endAngle) {}
+    Sector(Point cen, Point point, double startAngle, double endAngle) :Circle(cen, Vector(cen - point).abs()), startAngle(startAngle), endAngle(endAngle) {}
+    Sector(const Sector& other) :Circle(other.getCenter(), other.getRadius()), startAngle(other.startAngle), endAngle(other.endAngle) {}
+    void printInf() const override {
+        cout << "secrot: center (" << getCenter().x << ", " << getCenter().y << "), radius = " << getRadius() << ", endAngle = " << endAngle << ", startAngle = " << startAngle << endl;
+    }
+    void rotate(const Point& center, double angle) override {
+        
+        Point cen = getCenter();
+        cen.rotate(center, angle);
+        setCenter(cen);
+
+        startAngle += angle;
+        endAngle += angle;
+    }
+    Sector& operator=(const Sector& other) {
+        if (this != &other) {
+            setCenter(other.getCenter());
+            setRadius(other.getRadius());
+            endAngle = other.endAngle;
+            startAngle = other.startAngle;
+        }
+        return *this;
+    }
+    void draw(sf::RenderWindow& window, int num, sf::Font& font) const override {
+        int pointCount = 50;
+        // Создаем массив вершин (тип треугольный фан)
+        sf::VertexArray sector(sf::Lines, pointCount);
+
+
+        Point cen = getCenter();
+        double rad = getRadius();
+
+        // Вычисляем точки сектора
+        double angleStep = (endAngle - startAngle) / pointCount; // Шаг между углами
+        for (int i = 0; i < pointCount; ++i) {
+            sf::VertexArray line(sf::Lines, 2);
+
+            float angle = startAngle + i * angleStep;
+            float x1 = cen.x + rad * cos(angle);
+            float y1 = cen.y + rad * sin(angle);
+            line[0].position = sf::Vector2f(x1, y1);
+            angle = startAngle + (i + 1) * angleStep;
+            x1 = cen.x + rad * cos(angle);
+            y1 = cen.y + rad * sin(angle);
+            line[1].position = sf::Vector2f(x1, y1);
+
+
+
+            line[0].color = Color::Black;
+            line[1].color = Color::Black;
+
+            window.draw(line);
+        }
+
+
+        float x1 = cen.x + rad * cos(endAngle);
+        float y1 = cen.y + rad * sin(endAngle);
+        Text text;
+        text.setFont(font);
+        text.setScale(1 * global::size, -1 * global::size);
+        text.setPosition(x1, y1);
+        text.setString("sc" + std::to_string(num));
+        text.setCharacterSize(15);
+        text.setFillColor(Color::Black);
+        window.draw(text);
+    }
+    Point getStartPoint() {
+        Point stp = getCenter() + Point(getRadius() * cos(startAngle), getRadius() * sin(startAngle));
+        return stp;
+    }
+    Point getEndPoint() {
+        Point enp = getCenter() + Point(getRadius() * cos(endAngle), getRadius() * sin(endAngle));
+        return enp;
+    }
+};
+
 
 class Poligon : public BasicShape {
 private:
@@ -372,21 +442,13 @@ public:
     }
     void move(double dx, double dy) override {
         for (auto& p : points) {
-            p.x += dx;
-            p.y += dy;
+            p.move(dx, dy);
         }
     }
     void rotate(const Point& center, double angle) override {
 
         for (auto& p : points) {
-            p.x -= center.x;
-            p.y -= center.y;
-
-            double newx = cos(angle) * p.x - sin(angle) * p.y;
-            double newy = sin(angle) * p.x + cos(angle) * p.y;
-
-            p.x = newx + center.x;
-            p.y = newy + center.y;
+            p.rotate(center, angle);
         }
         
     }
@@ -437,6 +499,9 @@ public:
         }
         answ += (points[size - 1].x * points[0].y - points[size - 1].y * points[0].x);
         return abs(answ) / 2;
+    }
+    vector<Point> getPoints() {
+        return points;
     }
 };
 

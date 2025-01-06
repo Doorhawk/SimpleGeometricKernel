@@ -32,18 +32,7 @@ void commandProcessor(ShapeManager& shapeManager) {
                 shapeManager.addBasicShape(Point(x, y));
             }
             else if (command == "line") {
-                bool isSegment = false;
                 cin >> command;
-                if (command == "s") {
-                    isSegment = true;
-                }
-                else if (command == "l") {
-                    isSegment = false;
-                }
-                else {
-                    cout << "line [s,l] , l - to line, s - to segment";
-                }
-                std::cin >> command;
                 if (command == "p") {
                     int i, j;
                     std::cin >> i >> j;
@@ -61,7 +50,7 @@ void commandProcessor(ShapeManager& shapeManager) {
 
                     if (point1 && point2) {
                         // Создаем прямую между точками
-                        shapeManager.addBasicShape(Line(*point1, *point2,isSegment));
+                        shapeManager.addBasicShape(Line(*point1, *point2));
                         std::cout << "Line created between points " << i << " and " << j << ".\n";
                     }
                     else {
@@ -71,7 +60,43 @@ void commandProcessor(ShapeManager& shapeManager) {
                 else if (command == "c") {
                     float x, y, x1, y1;
                     std::cin >> x >> y >> x1 >> y1;
-                    shapeManager.addBasicShape(Line(Point(x, y),Point(x1,y1),isSegment));
+                    shapeManager.addBasicShape(Line(Point(x, y),Point(x1,y1)));
+                }
+                else {
+                    std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
+                    continue;
+                }
+            }
+            else if (command == "segment") {
+                cin >> command;
+                if (command == "p") {
+                    int i, j;
+                    std::cin >> i >> j;
+                    auto shape1 = shapeManager.getBasicShape(i);
+                    auto shape2 = shapeManager.getBasicShape(j);
+
+                    if (!shape1 || !shape2) {
+                        std::cout << "Invalid indices.\n";
+                        continue;
+                    }
+
+                    // Попытка привести фигуры к точкам
+                    auto point1 = std::dynamic_pointer_cast<Point>(shape1);
+                    auto point2 = std::dynamic_pointer_cast<Point>(shape2);
+
+                    if (point1 && point2) {
+                        // Создаем прямую между точками
+                        shapeManager.addBasicShape(Line(*point1, *point2));
+                        std::cout << "Line created between points " << i << " and " << j << ".\n";
+                    }
+                    else {
+                        std::cout << "Both shapes must be points.\n";
+                    }
+                }
+                else if (command == "c") {
+                    float x, y, x1, y1;
+                    std::cin >> x >> y >> x1 >> y1;
+                    shapeManager.addBasicShape(Segment(Point(x, y), Point(x1, y1)));
                 }
                 else {
                     std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
@@ -145,6 +170,78 @@ void commandProcessor(ShapeManager& shapeManager) {
 
                 
             }
+            else if (command == "sector") {
+                std::cin >> command;
+                Point center;
+                if (command == "p") {
+                    int i;
+                    std::cin >> i;
+                    auto shape1 = shapeManager.getBasicShape(i);
+
+                    if (!shape1) {
+                        std::cout << "Invalid indices.\n";
+                        continue;
+                    }
+                    // Попытка привести фигуры к точкам
+                    auto point1 = std::dynamic_pointer_cast<Point>(shape1);
+
+                    if (point1) {
+                        center = *point1;
+                    }
+                    else {
+                        std::cout << "Both shapes must be points.\n";
+                    }
+                }
+                else if (command == "c") {
+                    double x, y;
+                    std::cin >> x >> y;
+                    center = Point(x, y);
+                }
+                else {
+                    std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
+                    continue;
+                }
+
+                std::cin >> command;
+                double rad;
+                if (command == "p") {
+                    int i;
+                    std::cin >> i;
+                    auto shape1 = shapeManager.getBasicShape(i);
+
+                    if (!shape1) {
+                        std::cout << "Invalid indices.\n";
+                        continue;
+                    }
+                    // Попытка привести фигуры к точкам
+                    auto point1 = std::dynamic_pointer_cast<Point>(shape1);
+
+                    if (point1) {
+                        Vector vec = (*point1 - center);
+                        // Создаем прямую между точками
+                        rad = vec.abs();
+                    }
+                    else {
+                        std::cout << "Both shapes must be points.\n";
+                    }
+                }
+                else if (command == "c") {
+                    double radius;
+                    cin >> radius;
+                    // Создаем прямую между точками
+                    rad = radius;
+                }
+                else {
+                    std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
+                    continue;
+                }
+
+                double angle1, angle2;
+                cin >> angle1>>angle2;
+                // добавитть проверку введения углов
+                shapeManager.addBasicShape(Sector(center, rad, angle1/180*acos(-1), angle2 /180 * acos(-1)));
+
+            }
             else if (command == "poligon") {
                 int size = 0;
                 std::cin >> size;
@@ -184,6 +281,89 @@ void commandProcessor(ShapeManager& shapeManager) {
                     std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
                     continue;
                 }
+            }
+        }
+        else if (command == "addMarkers") {
+            std::cin >> command;
+            if (command == "segment") {
+                int i;
+                std::cin >> i;
+                auto shape1 = shapeManager.getBasicShape(i);
+                if (!shape1) {
+                    std::cout << "Invalid indices.\n";
+                    continue;
+                }
+                auto seg = std::dynamic_pointer_cast<Segment>(shape1);
+
+                if (seg) {
+                    // Создаем прямую между точками
+                    shapeManager.addBasicShape(seg->getStart());
+                    shapeManager.addBasicShape(seg->getEnd());
+                }
+                else {
+                    std::cout << "It must be segment.\n";
+                }
+            }
+            else if (command == "circle") {
+                int i;
+                std::cin >> i;
+                auto shape1 = shapeManager.getBasicShape(i);
+                if (!shape1) {
+                    std::cout << "Invalid indices.\n";
+                    continue;
+                }
+                auto cir = std::dynamic_pointer_cast<Circle>(shape1);
+
+                if (cir) {
+                    // Создаем прямую между точками
+                    shapeManager.addBasicShape(cir->getCenter());
+                }
+                else {
+                    std::cout << "It must be circle.\n";
+                }
+
+            }
+            else if (command == "sector") {
+                int i;
+                std::cin >> i;
+                auto shape1 = shapeManager.getBasicShape(i);
+                if (!shape1) {
+                    std::cout << "Invalid indices.\n";
+                    continue;
+                }
+                auto sec = std::dynamic_pointer_cast<Sector>(shape1);
+
+                if (sec) {
+                    shapeManager.addBasicShape(sec->getCenter());
+                    shapeManager.addBasicShape(sec->getStartPoint());
+                    shapeManager.addBasicShape(sec->getEndPoint());
+                    // и ещё добавить определение токек начала и конца дуги
+                }
+                else {
+                    std::cout << "It must be circle.\n";
+                }
+            }
+            else if (command == "poligon") {
+                int i;
+                std::cin >> i;
+                auto shape1 = shapeManager.getBasicShape(i);
+                if (!shape1) {
+                    std::cout << "Invalid indices.\n";
+                    continue;
+                }
+                auto poli = std::dynamic_pointer_cast<Poligon>(shape1);
+
+                if (poli) {
+                    for(Point& po:poli->getPoints())
+                        shapeManager.addBasicShape(po);
+                    // и ещё добавить определение токек начала и конца дуги
+                }
+                else {
+                    std::cout << "It must be poligon.\n";
+                }
+            }
+            else {
+                cout << "No for this type\n";
             }
         }
         else if (command == "delete") {
@@ -614,13 +794,9 @@ void commandProcessor(ShapeManager& shapeManager) {
             int index;
             cin >> index;
             auto shapeLine = shapeManager.getBasicShape(index);
-            auto line = std::dynamic_pointer_cast<Line>(shapeLine);
-            if (!line) {
-                cout << "not line at " << index << endl;
-                continue;
-            }
-            if (!line->getIsSegment()) {
-                cout << "is not a segment\n";
+            auto seg= std::dynamic_pointer_cast<Segment>(shapeLine);
+            if (!seg) {
+                cout << "not segment at " << index << endl;
                 continue;
             }
             std::string Type;
@@ -653,13 +829,13 @@ void commandProcessor(ShapeManager& shapeManager) {
                 continue;
             }
 
-            vector<Line> lines = line->divide(point);
-            if (lines.empty()) {
+            vector<Segment> segments = seg->divide(point);
+            if (segments.empty()) {
                 cout << "point the point does not belong to the segment or the point belongs to the edge\n";
                 continue;
             }
-            shapeManager.addBasicShape(lines[0]);
-            shapeManager.addBasicShape(lines[1]);
+            shapeManager.addBasicShape(segments[0]);
+            shapeManager.addBasicShape(segments[1]);
             shapeManager.removeBasicShape(index);
         }
         else if (command == "exit") {
@@ -768,12 +944,23 @@ void commandProcessor(ShapeManager& shapeManager) {
 }
 
 
-
+// добавит везде геттреры и сеттеры
 // правельные мнооугольникик как центр точка в угле(центре стороны) и радиус
 // прямоугольник по 2м точкам, пеергрузка определения у полигна
 // сделат функцию удаления дубликатов, для этого в базовый класс над одобавить переменную овчечающую за тип обьекта
-// Фукция разделения прямой точкой на две прямые, ну отрезка 
 // модифицировать круг до дуги и сделать разбиение круга на дуги точкой
+// пуст линия и отрезок будут разными классыми, потому что с помощью отречков моджно создавать другие фигуры(сложные контуры) а главнное ээфективно реализовать пересечение фигур друг с другом
+// логичнее наверное что полигон это группа отрезков
+// добавить функцию разбития полигона фигуры на составные -> линии и точки, для дальнейшего взаимодействия 
+// добавить ещё способы задания сектора кроме как углами
+// добавить функцию ищущую угол между прямыми (или по трем точкам
+// фукция проверябщее принадлежит ли точка фигуре(прямой, кругу и тд)
+// при divide полигон он должен удалять и разбиваться на линии, и уж не обходимая линии разбиваться на 2 наверное
+// или похуй... функиця создания полигона из отрезков мб
+// функия декстрой которая разбивает полигон на отрезки и точки
+// 
+// 
+// сложная схема сдулать так чтобы
 // Пусть в GO будут только общие операции типа булевых, а прямая паралельная данной ну это применимо тольок к прямой
 
 int main()
