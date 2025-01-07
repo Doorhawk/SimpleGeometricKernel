@@ -350,6 +350,9 @@ void commandProcessor(ShapeManager& shapeManager) {
             std::cin >> i;
             shapeManager.removeBasicShape(i);
         }
+        else if (command == "deleteAll") {
+            shapeManager.removeAllBasicShape();
+        }
         else if (command == "inf") {
             int index1;
             std::cin >> index1;
@@ -441,25 +444,17 @@ void commandProcessor(ShapeManager& shapeManager) {
             shape->rotate(center, angle);
         }
         else if (command == "intersection") {
-            std::string shapeType1, shapeType2;
             int index1, index2;
-
-            // Чтение типа и индекса первого объекта
-            std::cin >> shapeType1 >> index1;
-
-            // Чтение типа и индекса второго объекта
-            std::cin >> shapeType2 >> index2;
-
+            std::cin >> index1>>index2;
             auto shape1 = shapeManager.getBasicShape(index1);
             auto shape2 = shapeManager.getBasicShape(index2);
-
-            // Проверка существования объектов
             if (!shape1 || !shape2) {
                 std::cout << "Invalid indices.\n";
                 continue;
             }
-
-            // Проверка типа первого объекта
+            std::string shapeType1, shapeType2;
+            shapeType1 = shape1->getType();
+            shapeType2 = shape2->getType();
             if (shapeType1 == "line" && shapeType2 == "line") {
                 auto line1 = std::dynamic_pointer_cast<Line>(shape1);
                 auto line2 = std::dynamic_pointer_cast<Line>(shape2);
@@ -518,7 +513,7 @@ void commandProcessor(ShapeManager& shapeManager) {
                     std::cout << "One or both shapes are not circle and line.\n";
                 }
             }
-            else if (shapeType2 == "circle" && shapeType1 == "circle") {
+            else if (shapeType1 == "circle" && shapeType2 == "circle") {
                 auto circle1 = std::dynamic_pointer_cast<Circle>(shape1);
                 auto circle2 = std::dynamic_pointer_cast<Circle>(shape2);
 
@@ -543,25 +538,18 @@ void commandProcessor(ShapeManager& shapeManager) {
             }
         }
         else if (command == "distance") {
-            std::string shapeType1, shapeType2;
             int index1, index2;
-
-            // Чтение типа и индекса первого объекта
-            std::cin >> shapeType1 >> index1;
-
-            // Чтение типа и индекса второго объекта
-            std::cin >> shapeType2 >> index2;
-
+            std::cin >> index1 >> index2;
             auto shape1 = shapeManager.getBasicShape(index1);
             auto shape2 = shapeManager.getBasicShape(index2);
-
-            // Проверка существования объектов
             if (!shape1 || !shape2) {
                 std::cout << "Invalid indices.\n";
                 continue;
             }
-            // Проверка типа первого объекта
-            else if (shapeType1 == "point" && shapeType2 == "line") {
+            std::string shapeType1, shapeType2;
+            shapeType1 = shape1->getType();
+            shapeType2 = shape2->getType();
+            if (shapeType1 == "point" && shapeType2 == "line") {
                 auto point = std::dynamic_pointer_cast<Point>(shape1);
                 auto line = std::dynamic_pointer_cast<Line>(shape2);
                 if (point && line) {
@@ -596,40 +584,40 @@ void commandProcessor(ShapeManager& shapeManager) {
             }
         }
         else if (command == "copy") {
-            std::cin >> command;
             int index1;
             std::cin >> index1;
             auto shape1 = shapeManager.getBasicShape(index1);
+            string shapeType = shape1->getType();
             if (!shape1) {
                 std::cout << "Invalid indices.\n";
                 continue;
             }
-            if (command == "point") {
+            if (shapeType == "point") {
                 auto point = std::dynamic_pointer_cast<Point>(shape1);
                 if (point) {
                     shapeManager.addBasicShape(*point);
                 }
             }
-            else if (command == "line") {
+            else if (shapeType == "line") {
                 auto line = std::dynamic_pointer_cast<Line>(shape1);
                 if (line) {
                     shapeManager.addBasicShape(*line);
                 }
             }
-            else if (command == "circle") {
+            else if (shapeType == "circle") {
                 auto circle = std::dynamic_pointer_cast<Circle>(shape1);
                 if (circle) {
                     shapeManager.addBasicShape(*circle);
                 }
             }
-            else if (command == "poligon") {
+            else if (shapeType == "poligon") {
                 auto poligon = std::dynamic_pointer_cast<Poligon>(shape1);
                 if (poligon) {
                     shapeManager.addBasicShape(*poligon);
                 }
             }
             else {
-                std::cout << "Unsupported shapes " <<command<< endl;
+                std::cout << "Unsupported shapes " << shapeType << endl;
             }
         }
         else if (command == "parallel") {
@@ -845,6 +833,49 @@ void commandProcessor(ShapeManager& shapeManager) {
             shapeManager.addBasicShape(segments[1]);
             shapeManager.removeBasicShape(index);
         }
+        else if (command == "angle") {
+            cin >> command;
+            if (command == "line") {
+                int index1, index2;
+                cin >> index1 >> index2;
+                auto shape1 = shapeManager.getBasicShape(index1);
+                auto shape2 = shapeManager.getBasicShape(index2);
+                if (!shape1 || !shape2) {
+                    cout << "Invalid index"<< endl;
+                    continue;
+                }
+                auto line1 = dynamic_pointer_cast<Line>(shape1);
+                auto line2 = dynamic_pointer_cast<Line>(shape2);
+                if (!line1 || !line2) {
+                    cout << "is not line on " << index1 << " " << index2 << endl;
+                    continue;
+                }
+                cout<<"angle = "<<go::findAngle(*line1, *line2)*180/acos(-1)<<endl;
+
+            }
+            else if (command == "point") {
+                int index1, index2,index3;
+                cin >> index1 >> index2>>index3;
+                auto shape1 = shapeManager.getBasicShape(index1);
+                auto shape2 = shapeManager.getBasicShape(index2);
+                auto shape3 = shapeManager.getBasicShape(index3);
+                if (!shape1 || !shape2||!shape3) {
+                    cout << "Invalid index" << endl;
+                    continue;
+                }
+                auto p1 = dynamic_pointer_cast<Point>(shape1);
+                auto p2 = dynamic_pointer_cast<Point>(shape2);
+                auto p3 = dynamic_pointer_cast<Point>(shape3);
+                if (!p1 || !p2||!p3) {
+                    cout << "is not point on " << index1 << " " << index2 << endl;
+                    continue;
+                }
+                cout << "angle = " << go::findAngle(*p1, *p2,*p3) * 180 / acos(-1)<<endl;
+            }
+            else {
+                cout << "no for this type\n";
+            }
+        }
         else if (command == "exit") {
             std::cout << "Exiting program...\n";
             exit(0);
@@ -951,6 +982,7 @@ void commandProcessor(ShapeManager& shapeManager) {
 }
 
 
+// линия делится на 2 луча, луч делится на отрезок и луч
 // добавит везде геттреры и сеттеры
 // правельные мнооугольникик как центр точка в угле(центре стороны) и радиус
 // прямоугольник по 2м точкам, пеергрузка определения у полигна

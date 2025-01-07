@@ -33,7 +33,16 @@ public:
             return -1;
         }
     }
+    void removeAllBasicShape() {
+        shapesModified = false;
+        std::unique_lock<std::mutex> lock(shapesMutex);
+        cv.wait(lock, [this] { return allDrowed; }); // ∆дЄм завершени€ кадра
 
+        shapes.clear();
+
+        shapesModified = true;
+        cv.notify_all();
+    }
     bool removeBasicShape(size_t index) {
         shapesModified = false;
         std::unique_lock<std::mutex> lock(shapesMutex);

@@ -255,7 +255,7 @@ public:
         if (point == p1 || point == p2) {
             return {};
         }
-        if (fun(point.x) < point.y + go::getPrecision() && fun(point.x) > point.y - go::getPrecision()) {
+        if (abs(fun(point.x) - point.y) < go::getPrecision()) {
             return { Segment(p1,point),Segment(point,p2) };
         }
         else {
@@ -432,6 +432,9 @@ public:
         Point enp = getCenter() + Point(getRadius() * cos(endAngle), getRadius() * sin(endAngle));
         return enp;
     }
+   /* vector<Segment> divide(const Point& point) const {
+        double 
+    }*/
 };
 
 

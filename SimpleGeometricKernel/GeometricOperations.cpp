@@ -229,3 +229,12 @@ std::vector<Point> go::findIntersection(const Circle& circle1, const Circle& cir
 Point go::findMiddle(const Point& point1, const Point& point2) {
 	return Point((point2.x + point1.x) / 2, (point2.y + point1.y) / 2);
 }
+double go::findAngle(const Line& line1, const Line& line2) {
+	Vector vec1 = line1.p1 - line1.p2;
+	Vector vec2 = line2.p1 - line2.p2;
+	double angle = acos(vec1 * vec2 / vec1.abs() / vec2.abs());
+	return min(angle, acos(-1)-angle);
+}
+double go::findAngle(const Point& point1, const Point& point2, const Point& point3) {
+	return findAngle(Line(point1, point2), Line(point3, point2));
+}

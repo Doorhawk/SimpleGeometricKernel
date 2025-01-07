@@ -30,8 +30,10 @@ public:
 	static std::vector<Point> findIntersection(const Circle& circle, const Line& line);
 	static std::vector<Point> findIntersection(const Line& line, const Circle& circle);
 	static std::vector<Point> findIntersection(const Circle& circle1, const Circle& circle2);
-	// на счет этой не уверен
+	// ...
 	static Point findMiddle(const Point& point1,const Point& point2);
+	static double findAngle(const Line& line, const Line& line1);
+	static double findAngle(const Point& point1, const Point& point2, const Point& point3);
 
 	//
 
