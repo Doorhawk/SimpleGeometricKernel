@@ -50,7 +50,7 @@ void commandProcessor(ShapeManager& shapeManager) {
 
                     if (point1 && point2) {
                         // Создаем прямую между точками
-                        shapeManager.addBasicShape(Line(*point1, *point2));
+                        shapeManager.addBasicShape(Line::create(point1, point2));
                         std::cout << "Line created between points " << i << " and " << j << ".\n";
                     }
                     else {
@@ -60,14 +60,18 @@ void commandProcessor(ShapeManager& shapeManager) {
                 else if (command == "c") {
                     float x, y, x1, y1;
                     std::cin >> x >> y >> x1 >> y1;
-                    shapeManager.addBasicShape(Line(Point(x, y),Point(x1,y1)));
+
+                    auto p1 = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(x, y)));
+                    auto p2 = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(x1, y1)));
+                    if(p1&&p2)
+                        shapeManager.addBasicShape(Line::create(p1,p2));
                 }
                 else {
                     std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
                     continue;
                 }
             }
-            else if (command == "segment") {
+            /*else if (command == "segment") {
                 cin >> command;
                 if (command == "p") {
                     int i, j;
@@ -281,9 +285,185 @@ void commandProcessor(ShapeManager& shapeManager) {
                     std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
                     continue;
                 }
-            }
+            }*/
         }
-        else if (command == "addMarkers") {
+        else if (command == "delete") {
+            int i;
+            std::cin >> i;
+            shapeManager.removeBasicShape(i);
+        }
+        else if (command == "deleteAll") {
+            shapeManager.removeAllBasicShape();
+        }
+        else if (command == "move") {
+            int index1;
+            std::cin >> index1;
+            std::cin >> command;
+            if (command != "to") {
+                std::cout << "missed \"to\"" << endl;
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                continue;
+            }
+            double x, y;
+            // проверить введено ли чесло а не строка!!!
+            std::cin >> x >> y;
+            auto shape1 = shapeManager.getBasicShape(index1);
+            if (!shape1) {
+                std::cout << "Invalid indices.\n";
+                continue;
+            }
+            shape1->move(x, y);
+        }
+        else if (command == "rotate") {
+            int index;
+            std::cin >> index;
+
+            auto shape = shapeManager.getBasicShape(index);
+            if (!shape) {
+                std::cout << "Invalid index.\n";
+                continue;
+            }
+            //to make it easier to understand
+            std::string tmp;
+            std::cin >> tmp;
+            if (tmp != "around") {
+                std::cout << "missed \"around\"\n";
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                continue;
+            }
+
+            std::string centerType;
+            std::cin >> centerType; // Определяем тип центра (c или p)
+
+            Point center;
+            if (centerType == "c") { // Центр задан координатами
+                float x, y;
+                std::cin >> x >> y;
+                center = { x, y };
+            }
+            else if (centerType == "p") { // Центр задан индексом точки
+                int centerIndex;
+                std::cin >> centerIndex;
+
+                auto centerShape = shapeManager.getBasicShape(centerIndex);
+                auto centerPoint = std::dynamic_pointer_cast<Point>(centerShape);
+
+                if (centerPoint) {
+                    center = *centerPoint;
+                }
+                else {
+                    std::cout << "Shape at index " << centerIndex << " is not a point.\n";
+                    continue;
+                }
+            }
+            else {
+                std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
+                continue;
+            }
+
+            std::cin >> tmp;
+            if (tmp != "an") {
+                std::cout << "missed \"an\"\n";
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                continue;
+            }
+
+            double angle;
+            std::cin >> angle; // Считываем угол
+            // degree to rad
+            angle = angle / 180 * PI;
+
+            shape->rotate(center, angle);
+        }
+        else if (command == "parallel") {
+
+            int index;
+            cin >> index;
+            auto shapeLine = shapeManager.getBasicShape(index);
+            if (!shapeLine) {
+                cout << "invalid index\n";
+            }
+
+            std::string centerType;
+            std::cin >> centerType; // Определяем тип центра (c или p)
+
+            shared_ptr<Point> point;
+            if (centerType == "c") { // Центр задан координатами
+                float x, y;
+                std::cin >> x >> y;
+                point = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(x, y)));
+            }
+            else if (centerType == "p") { // Центр задан индексом точки
+                int centerIndex;
+                std::cin >> centerIndex;
+
+                auto centerShape = shapeManager.getBasicShape(centerIndex);
+                point = std::dynamic_pointer_cast<Point>(centerShape);
+
+                if (!point) {
+                    std::cout << "Shape at index " << centerIndex << " is not a point.\n";
+                    continue;
+                }
+            }
+            else {
+                std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
+                continue;
+            }
+
+            if (shapeLine->getType() == "line") {
+                auto line = std::dynamic_pointer_cast<Line>(shapeLine);
+                if (!line) {
+                    cout << "not line at " << index << endl;
+                    continue;
+                }
+
+                //auto p1 = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(point));
+                //auto p2 = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(*point + Point(10,10)));
+                auto p2 = std::make_shared<Point>(*point + Point(10,10));
+                if (p2) {
+                    auto parallelLine = shapeManager.addBasicShape(Line::create(point, p2));
+                    parallelLine->setParent(DependsTypes::Parallel, line);
+                }
+                    
+
+            }
+            /*else if (shapeLine->getType() == "segment") {
+                auto sec = std::dynamic_pointer_cast<Segment>(shapeLine);
+                if (!sec) {
+                    cout << "not line at " << index << endl;
+                    continue;
+                }
+                shapeManager.addBasicShape(sec->getParallel(point));
+            }*/
+
+
+            }
+        else if (command == "inf") {
+            int index1;
+            std::cin >> index1;
+
+            auto shape1 = shapeManager.getBasicShape(index1);
+
+            if (!shape1) {
+                std::cout << "Invalid indices.\n";
+                continue;
+            }
+
+            shape1->printInf();
+        }
+        else if (command == "exit") {
+            std::cout << "Exiting program...\n";
+            exit(0);
+        }
+        else {
+             std::cin.clear();
+             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+             std::cout << "Unknown command.\n";
+        }
+       /* else if (command == "addMarkers") {
             int i;
             std::cin >> i;
             auto shape1 = shapeManager.getBasicShape(i);
@@ -345,104 +525,7 @@ void commandProcessor(ShapeManager& shapeManager) {
                 cout << "No for this type\n";
             }
         }
-        else if (command == "delete") {
-            int i;
-            std::cin >> i;
-            shapeManager.removeBasicShape(i);
-        }
-        else if (command == "deleteAll") {
-            shapeManager.removeAllBasicShape();
-        }
-        else if (command == "inf") {
-            int index1;
-            std::cin >> index1;
-
-            auto shape1 = shapeManager.getBasicShape(index1);
-
-            if (!shape1) {
-                std::cout << "Invalid indices.\n";
-                continue;
-            }
-
-            shape1->printInf();
-        }
-        else if (command == "move") {
-            int index1;
-            std::cin >> index1;
-            std::cin >> command;
-            if (command != "to"){
-                std::cout << "missed \"to\"" << endl;
-                continue;
-            }
-            double x, y;
-            // проверить введено ли чесло а не строка!!!
-            std::cin >> x >> y;
-            auto shape1 = shapeManager.getBasicShape(index1);
-            if (!shape1) {
-                std::cout << "Invalid indices.\n";
-                continue;
-            }
-            shape1->move(x, y);
-        }
-        else if (command == "rotate") {
-            int index;
-            std::cin >> index;
-
-            auto shape = shapeManager.getBasicShape(index);
-            if (!shape) {
-                std::cout << "Invalid index.\n";
-                continue;
-            }
-            //to make it easier to understand
-            std::string tmp;
-            std::cin >> tmp;
-            if (tmp != "around") {
-                std::cout << "missed \"around\"\n";
-                continue;
-            }
-
-            std::string centerType;
-            std::cin >> centerType; // Определяем тип центра (c или p)
-
-            Point center;
-            if (centerType == "c") { // Центр задан координатами
-                float x, y;
-                std::cin >> x >> y;
-                center = { x, y };
-            }
-            else if (centerType == "p") { // Центр задан индексом точки
-                int centerIndex;
-                std::cin >> centerIndex;
-
-                auto centerShape = shapeManager.getBasicShape(centerIndex);
-                auto centerPoint = std::dynamic_pointer_cast<Point>(centerShape);
-
-                if (centerPoint) {
-                    center = *centerPoint;
-                }
-                else {
-                    std::cout << "Shape at index " << centerIndex << " is not a point.\n";
-                    continue;
-                }
-            }
-            else {
-                std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
-                continue;
-            }
-
-            std::cin >> tmp;
-            if (tmp != "an") {
-                std::cout << "missed \"an\"\n";
-                continue;
-            }
-
-            double angle;
-            std::cin >> angle; // Считываем угол
-            // degree to rad
-            angle = angle / 180 * PI;
-
-            shape->rotate(center, angle);
-        }
+        
         else if (command == "intersection") {
             int index1, index2;
             std::cin >> index1>>index2;
@@ -620,63 +703,7 @@ void commandProcessor(ShapeManager& shapeManager) {
                 std::cout << "Unsupported shapes " << shapeType << endl;
             }
         }
-        else if (command == "parallel") {
-
-            int index;
-            cin >> index;
-            auto shapeLine = shapeManager.getBasicShape(index);
-            if (!shapeLine) {
-                cout << "invalid index\n";
-            }
-
-            std::string centerType;
-            std::cin >> centerType; // Определяем тип центра (c или p)
-
-            Point point;
-            if (centerType == "c") { // Центр задан координатами
-                float x, y;
-                std::cin >> x >> y;
-                point = { x, y };
-            }
-            else if (centerType == "p") { // Центр задан индексом точки
-                int centerIndex;
-                std::cin >> centerIndex;
-
-                auto centerShape = shapeManager.getBasicShape(centerIndex);
-                auto centerPoint = std::dynamic_pointer_cast<Point>(centerShape);
-
-                if (centerPoint) {
-                    point = *centerPoint;
-                }
-                else {
-                    std::cout << "Shape at index " << centerIndex << " is not a point.\n";
-                    continue;
-                }
-            }
-            else {
-                std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
-                continue;
-            }
-
-            if (shapeLine->getType() == "line") {
-                auto line = std::dynamic_pointer_cast<Line>(shapeLine);
-                if (!line) {
-                    cout << "not line at " << index << endl;
-                    continue;
-                }
-                shapeManager.addBasicShape(line->getParallel(point));
-            }
-            else if(shapeLine->getType() == "segment"){
-                auto sec = std::dynamic_pointer_cast<Segment>(shapeLine);
-                if (!sec) {
-                    cout << "not line at " << index << endl;
-                    continue;
-                }
-                shapeManager.addBasicShape(sec->getParallel(point));
-            }
-
-            
-        }
+        
         else if (command == "perpendicular") {
 
             int index;
@@ -876,10 +903,6 @@ void commandProcessor(ShapeManager& shapeManager) {
                 cout << "no for this type\n";
             }
         }
-        else if (command == "exit") {
-            std::cout << "Exiting program...\n";
-            exit(0);
-        }
         else if (command == "help") {
                 cout << "0 - all\n"
                     << "1 - help\n"
@@ -971,16 +994,14 @@ void commandProcessor(ShapeManager& shapeManager) {
                     break;
                 }
             
-        }
-        else {
-            std::cin.clear();
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            std::cout << "Unknown command.\n";
-        }
+        }*/
+       
     }
 
 }
 
+
+// при изменении линии она меняет положение точек те обновляют состояни линии 2 раза не круто 
 
 // линия делится на 2 луча, луч делится на отрезок и луч
 // добавит везде геттреры и сеттеры
