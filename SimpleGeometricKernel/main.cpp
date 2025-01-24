@@ -327,7 +327,7 @@ void commandProcessor(ShapeManager& shapeManager) {
             //to make it easier to understand
             std::string tmp;
             std::cin >> tmp;
-            if (tmp != "around") {
+            if (tmp != "around"&& tmp != "ar") {
                 std::cout << "missed \"around\"\n";
                 std::cin.clear();
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -364,8 +364,8 @@ void commandProcessor(ShapeManager& shapeManager) {
             }
 
             std::cin >> tmp;
-            if (tmp != "an") {
-                std::cout << "missed \"an\"\n";
+            if (tmp != "by") {
+                std::cout << "missed \"by\"\n";
                 std::cin.clear();
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 continue;
@@ -378,7 +378,7 @@ void commandProcessor(ShapeManager& shapeManager) {
 
             shape->rotate(center, angle);
         }
-        else if (command == "parallel") {
+        else if (command == "parallel"|| command == "ll") {
 
             int index;
             cin >> index;
@@ -428,6 +428,126 @@ void commandProcessor(ShapeManager& shapeManager) {
                     parallelLine->setParent(DependsTypes::Parallel, line);
                 }
                     
+
+            }
+            /*else if (shapeLine->getType() == "segment") {
+                auto sec = std::dynamic_pointer_cast<Segment>(shapeLine);
+                if (!sec) {
+                    cout << "not line at " << index << endl;
+                    continue;
+                }
+                shapeManager.addBasicShape(sec->getParallel(point));
+            }*/
+
+
+            }
+        else if (command == "perpendicular"|| command == "pr") {
+
+            int index;
+            cin >> index;
+            auto shapeLine = shapeManager.getBasicShape(index);
+            if (!shapeLine) {
+                cout << "invalid index\n";
+            }
+
+            std::string centerType;
+            std::cin >> centerType; // Определяем тип центра (c или p)
+
+            shared_ptr<Point> point;
+            if (centerType == "c") { // Центр задан координатами
+                float x, y;
+                std::cin >> x >> y;
+                point = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(x, y)));
+            }
+            else if (centerType == "p") { // Центр задан индексом точки
+                int centerIndex;
+                std::cin >> centerIndex;
+
+                auto centerShape = shapeManager.getBasicShape(centerIndex);
+                point = std::dynamic_pointer_cast<Point>(centerShape);
+
+                if (!point) {
+                    std::cout << "Shape at index " << centerIndex << " is not a point.\n";
+                    continue;
+                }
+            }
+            else {
+                std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
+                continue;
+            }
+
+            if (shapeLine->getType() == "line") {
+                auto line = std::dynamic_pointer_cast<Line>(shapeLine);
+                if (!line) {
+                    cout << "not line at " << index << endl;
+                    continue;
+                }
+
+                //auto p1 = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(point));
+                //auto p2 = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(*point + Point(10,10)));
+                auto p2 = std::make_shared<Point>(*point + Point(10, 10));
+                if (p2) {
+                    auto parallelLine = shapeManager.addBasicShape(Line::create(point, p2));
+                    parallelLine->setParent(DependsTypes::Perpendicular, line);
+                }
+
+
+            }
+            /*else if (shapeLine->getType() == "segment") {
+                auto sec = std::dynamic_pointer_cast<Segment>(shapeLine);
+                if (!sec) {
+                    cout << "not line at " << index << endl;
+                    continue;
+                }
+                shapeManager.addBasicShape(sec->getParallel(point));
+            }*/
+
+
+            }
+        else if (command == "belong") {
+
+            int index;
+            cin >> index;
+            auto shapeLine = shapeManager.getBasicShape(index);
+            if (!shapeLine) {
+                cout << "invalid index\n";
+            }
+
+            std::string centerType;
+            std::cin >> centerType; // Определяем тип центра (c или p)
+
+            shared_ptr<Point> point;
+            if (centerType == "c") { // Центр задан координатами
+                float x, y;
+                std::cin >> x >> y;
+                point = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(x, y)));
+            }
+            else if (centerType == "p") { // Центр задан индексом точки
+                int centerIndex;
+                std::cin >> centerIndex;
+
+                auto centerShape = shapeManager.getBasicShape(centerIndex);
+                point = std::dynamic_pointer_cast<Point>(centerShape);
+
+                if (!point) {
+                    std::cout << "Shape at index " << centerIndex << " is not a point.\n";
+                    continue;
+                }
+            }
+            else {
+                std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
+                continue;
+            }
+
+            if (shapeLine->getType() == "line") {
+                auto line = std::dynamic_pointer_cast<Line>(shapeLine);
+                if (!line) {
+                    cout << "not line at " << index << endl;
+                    continue;
+                }
+
+                point->setParent(DependsTypes::BelongsToLine, line);
+                
 
             }
             /*else if (shapeLine->getType() == "segment") {

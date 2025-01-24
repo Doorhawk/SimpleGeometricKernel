@@ -8,8 +8,27 @@
 
 using namespace sf;
 using namespace std;
+class Point;
+//class Vector {
+//private:
+//    double x, y;
+//    friend class go;
+//    friend class Point;
+//public:
+//    double abs() const;
+//    Vector normalize() const;
+//    Vector();
+//    Vector(double x, double y);
+//    Vector(const Vector& other);
+//    Vector(const Point& other);
+//    Vector& operator=(Point& other);
+//    Vector operator+(const Vector& other);
+//    Vector operator-(const Vector& other);
+//    double operator*(const Vector& other);
+//    Vector operator*(double scalar) const;
+//    Vector operator/(double scalar) const;
+//};
 
-class Vector;
 enum class DependsTypes {
     None,
     Parallel,
@@ -133,8 +152,8 @@ public:
     BasicShape(const std::string& type) :Depends(type), valid(true) {}
     virtual void draw(sf::RenderWindow& window, int num, sf::Font& font) const = 0; // ћетод отрисовки virtual => у каждого потомка свой должен быть оперделен
     virtual void printInf() const = 0; 
-    virtual void move(double dx, double dy,bool updateChild = true) = 0; //bool updateChild = true ”ƒјЋ»“№ ’”…Ќя
-    virtual void rotate(const Point& center, double angle, bool updateChild = true) = 0;
+    virtual void move(double dx, double dy) = 0; //bool updateChild = true ”ƒјЋ»“№ ’”…Ќя
+    virtual void rotate(const Point& center, double angle) = 0;
     virtual ~BasicShape() = default; // деструктор у каждого потомка свой по умолчанью
     void setInvalid() {
         valid = false;
@@ -163,9 +182,12 @@ private:
     friend class Circle;
     friend class Sector;
     friend class Poligon;
+protected:
+    double dependsX;
+    double dependsY;
 public:
-    Point(double x = 0, double y = 0) :BasicShape("point"),x(x), y(y) {}
-    Point(const Point& other) : BasicShape("point"),x(other.x), y(other.y) {}
+    Point(double x = 0, double y = 0) :BasicShape("point"),x(x), y(y), dependsX(0), dependsY(0){}
+    Point(const Point& other) : BasicShape("point"),x(other.x), y(other.y), dependsX(0), dependsY(0) {}
     void draw(sf::RenderWindow& window, int num, Font& font) const override {
         float r = 3.f * global::size;
         CircleShape point(r);
@@ -186,24 +208,63 @@ public:
         cout << "point: (" << x << ", " << y << ")" << endl;
         printFamilyInfo();
     }
-    void move(double dx, double dy, bool updateChild = true) override {
-        x += dx;
-        y += dy;
-        if(updateChild)
-            notifyChildren();
+    void move(double dx, double dy) override {
+        if (dependsType == DependsTypes::None) {
+            x += dx;
+            y += dy;
+        }
+        else if (dependsType == DependsTypes::BelongsToLine) {
+            //auto line = std::dynamic_pointer_cast<Line>(parent.lock());
+            //if (!line)
+            //    throw std::invalid_argument("Parent of point not line ");
+            //Point p1 = (*line->p1 - *line->p2);
+            //p1 = { -p1.y,p1.x };
+            //Point p2 = p1 + *this;
+            //Point q1 = line->getStart();
+            //Point q2 = line->getEnd();
+
+            //double A1 = p2.x - p1.x;
+            //double B1 = -(q2.x - q1.x);
+            //double C1 = q1.x - p1.x;
+
+            //double A2 = p2.y - p1.y;
+            //double B2 = -(q2.y - q1.y);
+            //double C2 = q1.y - p1.y;
+
+            //double det = A1 * B2 - A2 * B1;
+            //if (std::abs(det) < go::getPrecision()) {
+            //    throw std::invalid_argument("point bolings line error");
+            //    return;
+            //}
+            //double t = (C1 * B2 - C2 * B1) / det;
+            //// ¬ычисл€ем точку пересечени€
+            //Point intersection;
+            //x = p1.x + t * (p2.x - p1.x);
+            //y = p1.y + t * (p2.y - p1.y);
+
+            //dependsX = (*this - q1).x;
+            //dependsY = (*this - q1).y;
+        }
+
+        
+        notifyChildren();
     }
-    void rotate(const Point& center, double angle, bool updateChild = true) override {
-        x -= center.x;
-        y -= center.y;
+    void rotate(const Point& center, double angle) override {
+        if (dependsType == DependsTypes::None) {
+            x -= center.x;
+            y -= center.y;
 
-        double newx = cos(angle) * x - sin(angle) * y;
-        double newy = sin(angle) * x + cos(angle) * y;
+            double newx = cos(angle) * x - sin(angle) * y;
+            double newy = sin(angle) * x + cos(angle) * y;
 
-        x = newx + center.x;
-        y = newy + center.y;
+            x = newx + center.x;
+            y = newy + center.y;
+        }
+        else if (dependsType == DependsTypes::BelongsToLine) {
+            cout << "can't rotate belongs point\n";
+        }
 
-        if (updateChild)
-            notifyChildren();
+        notifyChildren();
     }
     Point& operator=(const Point& other) {
         if (this != &other) {
@@ -215,8 +276,8 @@ public:
     Point operator+(const Point& other) const {
         return Point(x + other.x, y + other.y);
     }
-    Point operator+(const Vector& other) const;
-    Point operator-(const Vector& other) const;
+    /*Point operator+(const Vector& other) const;
+    Point operator-(const Vector& other) const;*/
     Point operator-(const Point& other) const {
         return Point(x - other.x, y - other.y);
     }
@@ -243,8 +304,23 @@ public:
             notifyChildren();
     }
     void update() override {
-        // –еагируем на изменени€ точек
-        std::cout << "point updated based on points.\n";
+       /* if (dependsType == DependsTypes::None) {
+
+        }
+        else if (dependsType == DependsTypes::BelongsToLine) {
+            move(0, 0);
+
+            auto line = std::dynamic_pointer_cast<Line>(parent.lock());
+            if (!line)
+                throw std::invalid_argument("Parent of point not line ");
+
+            x = dependsX + line->p1->x;
+            y = dependsY + line->p1->y;
+        }
+        else {
+
+        }*/
+        
     }
 };
 
@@ -307,6 +383,7 @@ class Line : public virtual BasicShape {
 protected:
     std::shared_ptr<Point> p1, p2;
     friend class go;
+    friend class Point;
     double fun(double x) const{
         return (x - p1->x) * (p2->y - p1->y) / (p2->x - p1->x) + p1->y;
     }
@@ -325,23 +402,26 @@ public:
         cout << "line " <<index<<" : (" << p1->x << ", " << p1->y << "), (" << p2->x << ", " << p2->y << ")" <<endl;
         printFamilyInfo();
     }
-    void move(double dx, double dy,bool updateChild = true) override {
+    void move(double dx, double dy) override {
         isUpdating = true;
         p1->move(dx,dy);
         p2->move(dx,dy);
         isUpdating = false;
         notifyChildren();
     }
-    void rotate(const Point& center, double angle, bool updateChild = true) override {
-        if (dependsType != DependsTypes::Parallel) {
+    void rotate(const Point& center, double angle) override {
+        if (dependsType == DependsTypes::Parallel) {
+            cout << "can't rotate parallel line\n";
+        }
+        else if(dependsType == DependsTypes::Perpendicular){
+            cout << "can't rotate perpendicular line\n";
+        }
+        else {
             isUpdating = true;
             p1->rotate(center, angle);
             p2->rotate(center, angle);
             isUpdating = false;
             notifyChildren();
-        }
-        else {
-            cout << "cant rotate paralllel line\n";
         }
         
     }
@@ -408,6 +488,16 @@ public:
             if (!line)
                 throw std::invalid_argument("Parent of parallel line not line ");
             (*p2) = { line->p2->x + p1->x - line->p1->x,line->p2->y + p1->y - line->p1->y };
+        }
+        else if (dependsType == DependsTypes::Perpendicular) {
+
+            auto line = std::dynamic_pointer_cast<Line>(parent.lock());
+            if (!line)
+                throw std::invalid_argument("Parent of perpendicular line not line ");
+            (*p2) = *line->p2-*line->p1;
+            (*p2) = {-(p2->y),p2->x};
+            (*p2) = *p2+*p1;
+
         }
         else {
 

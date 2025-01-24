@@ -133,6 +133,7 @@
   <ItemGroup>
     <ClCompile Include="GeometricOperations.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="BasicShape.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GeometricOperations.h" />
