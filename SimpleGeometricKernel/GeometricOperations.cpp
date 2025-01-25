@@ -3,52 +3,7 @@
 
 
 
-    //double Vector::abs() const {
-    //    return sqrt(x * x + y * y);
-    //}
-    //Vector Vector::normalize() const {
-    //    double length = abs();
-    //    if (length != 0) {
-    //        return *this / length;
-    //    }
-    //    throw std::invalid_argument("Cannot normalize a zero vector.");
-    //}
-    //Vector::Vector() : x(0), y(0) {}
-    //Vector::Vector(double x, double y) : x(x), y(y) {}
-    //Vector::Vector(const Vector& other) : x(other.x), y(other.y) {}
-    //Vector::Vector(const Point& other) : x(other.getX()), y(other.getY()) {}
-    //Vector& Vector::operator=(const Vector& other) {
-    //    if (this != &other) {
-    //        x = other.x;
-    //        y = other.y;
-    //    }
-    //    return *this;
-    //}
-    //Vector& Vector::operator=(Point& other) {
-    //    x = other.getX();
-    //    y = other.getY();
-    //    return *this;
-    //}
-    //Vector Vector::operator+(const Vector& other) const {
-    //    return Vector(x + other.x, y + other.y);
-    //}
-    //Vector Vector::operator-(const Vector& other) const {
-    //    return Vector(x - other.x, y - other.y);
-    //}
-    //double Vector::operator*(const Vector& other) const {
-    //    return x * other.x + y * other.y;
-    //}
-    //Vector Vector::operator*(double scalar) const {
-    //    return Vector(x * scalar, y * scalar);
-    //}
-    //Vector Vector::operator/(double scalar) const {
-    //    if (scalar != 0) {
-    //        return Vector(x / scalar, y / scalar);
-    //    }
-    //    else {
-    //        throw std::invalid_argument("Division by zero.");
-    //    }
-    //}
+    
 
 
 // надо продумать файловую систему и раскичать по файлам BasicShape

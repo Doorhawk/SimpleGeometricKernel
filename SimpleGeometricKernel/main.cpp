@@ -21,7 +21,7 @@ const double PI = acos(-1);
 void commandProcessor(ShapeManager& shapeManager) {
     std::string command;
     while (true) {
-        std::cout << "Enter command: ";
+        std::cout << "-> ";
         std::cin >> command;
 
         if (command == "add") {
@@ -1161,3 +1161,24 @@ int main()
 
     return 0;
 }
+
+
+
+
+/*
+add point 0 0
+add line c 0 0 10 10
+delete 0
+add point 10 0
+add line p 1 4
+pr 3 p 4
+ll 3 p 4
+move 3 to 1 1
+move 4 to 1 1
+move 4 to 1 1
+move 4 to 1 1
+delete 6
+delete 5
+delete 7
+delete 2
+*/
