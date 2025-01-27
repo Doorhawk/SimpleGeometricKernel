@@ -439,7 +439,9 @@ void Line::update() {
         auto line = std::dynamic_pointer_cast<Line>(parent.lock());
         if (!line)
             throw std::invalid_argument("Parent of parallel line not line ");
-        (*p2) = { line->p2->x + p1->x - line->p1->x,line->p2->y + p1->y - line->p1->y };
+        Vector vec = { line->p2->x + p1->x - line->p1->x,line->p2->y + p1->y - line->p1->y };
+        vec = vec.normalize() * 10;
+        (*p2) = vec;
     }
     else if (dependsType == DependsTypes::Perpendicular) {
 
