@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <mutex>
 #include <condition_variable>
-
+#include "WindowManager.h"
 class ShapeManager {
 private:
     std::mutex shapesMutex;
@@ -13,6 +13,7 @@ private:
     bool shapesModified = true;
     std::unordered_map<int, std::shared_ptr<BasicShape>> shapes; // Хранение фигур по их индексам
     int nextIndex = 0; // Индекс для следующей фигуры
+    friend class WindowManager;
 public:
     template <typename T, typename = std::enable_if_t<std::is_base_of_v<BasicShape, T>>>
     std::shared_ptr<BasicShape> addBasicShape(const T& shape) {
@@ -123,4 +124,5 @@ public:
         auto it = shapes.find(index);
         return (it != shapes.end()&&it->second->getValid()) ? it->second : nullptr;
     }
+    
 };

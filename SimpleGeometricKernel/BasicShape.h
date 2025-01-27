@@ -5,7 +5,7 @@
 #include "climits"
 #include <string>
 #include <iostream>
-
+#include "enums.h"
 using namespace sf;
 using namespace std;
 
@@ -18,6 +18,7 @@ private:
     double x, y;
     friend class go;
     friend class Point;
+    friend class Line;
 public:
     double abs() const;
     Vector normalize() const;
@@ -34,13 +35,7 @@ public:
     Vector operator/(double scalar) const;
 };
 
-enum class DependsTypes {
-    None,
-    Parallel,
-    Perpendicular,
-    BelongsToLine,
-    Intersection
-};
+
 
 class Depends : public std::enable_shared_from_this<Depends> {
 private:
@@ -55,7 +50,8 @@ protected:
 public:
     Depends(const std::string& type);
     string getType() const;
-    virtual ~Depends() = default;
+    virtual ~Depends();
+    void setDependsType(DependsTypes dp);
     void setIndex(int _index);
     // ”становка родител€ с указанием типа зависимости
     void setParent(DependsTypes _type, const std::shared_ptr<Depends>& _parent);
@@ -102,6 +98,7 @@ protected:
 public:
     Point(double x = 0, double y = 0);
     Point(const Point& other);
+    Point(const Vector& other);
     void draw(sf::RenderWindow& window, int num, Font& font) const override;
     void printInf() const override;
     void move(double dx, double dy) override;

@@ -73,28 +73,30 @@ double go::getPrecision() {
 //}
 //
 //
-//double go::distance(const Point& point1,const Point& point2) {
-//	return sqrt((point1.x - point2.x)* (point1.x - point2.x)+ (point1.y - point2.y)* (point1.y - point2.y));
-//}
-//double go::distance(const Line& line, const Point& point) {
-//	// a = (x1 - x2,y1 - y2) - направление прямой
-//	// (a,w) 
-//
-//	Vector a = line.p2 - line.p1; // - направление прямой
-//	Vector w = line.p1 - point; // - направление между точкой и первой точкой прямой
-//	double answ = abs(a.x * w.y - a.y * w.x); // Модуль определителя (векторное произведение в 2D)
-//
-//	if (a.abs() == 0) {
-//		throw std::invalid_argument("The two points defining the line are the same.");
-//	}
-//
-//	answ = answ / a.abs(); // Sp = h * abs(a); => h = Sp/abs(a)
-//
-//	return answ;
-//}
-//double go::distance(const Point& point, const Line& line) {
-//	return go::distance(line, point);
-//}
+
+
+double go::distance(const Point& point1,const Point& point2) {
+	return sqrt((point1.x - point2.x)* (point1.x - point2.x)+ (point1.y - point2.y)* (point1.y - point2.y));
+}
+double go::distance(std::shared_ptr<Line> line, const Point& point) {
+	// a = (x1 - x2,y1 - y2) - направление прямой
+	// (a,w) 
+
+	Vector a = *line->p2 - *line->p1; // - направление прямой
+	Vector w = *line->p1 - point; // - направление между точкой и первой точкой прямой
+	double answ = abs(a.x * w.y - a.y * w.x); // Модуль определителя (векторное произведение в 2D)
+
+	if (a.abs() == 0) {
+		throw std::invalid_argument("The two points defining the line are the same.");
+	}
+
+	answ = answ / a.abs(); // Sp = h * abs(a); => h = Sp/abs(a)
+
+	return answ;
+}
+double go::distance(const Point& point, std::shared_ptr<Line> line) {
+	return go::distance(line, point);
+}
 //
 //Line go::getParallel(const Line& line, const  Point& point) {
 //	

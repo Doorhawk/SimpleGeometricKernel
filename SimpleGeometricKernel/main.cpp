@@ -5,6 +5,7 @@
 #include "GeometricOperations.h"
 #include "global.h"
 #include <thread>
+#include "enums.h"
 
 float global::size = 1.f;
 
@@ -67,6 +68,8 @@ void commandProcessor(ShapeManager& shapeManager) {
                         shapeManager.addBasicShape(Line::create(p1,p2));
                 }
                 else {
+                    std::cin.clear();
+                    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                     std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
                     continue;
                 }
@@ -359,6 +362,8 @@ void commandProcessor(ShapeManager& shapeManager) {
                 }
             }
             else {
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
                 continue;
             }
@@ -409,6 +414,8 @@ void commandProcessor(ShapeManager& shapeManager) {
                 }
             }
             else {
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
                 continue;
             }
@@ -472,6 +479,8 @@ void commandProcessor(ShapeManager& shapeManager) {
                 }
             }
             else {
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
                 continue;
             }
@@ -535,6 +544,8 @@ void commandProcessor(ShapeManager& shapeManager) {
                 }
             }
             else {
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
                 continue;
             }
@@ -1156,7 +1167,7 @@ int main()
     // Менеджер окна
     WindowManager windowManager(shapeManager);
     windowManager.show();
-   
+
     commandThread.join();
 
     return 0;

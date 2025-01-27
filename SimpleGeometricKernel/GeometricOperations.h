@@ -23,9 +23,9 @@ public:
 	////
 
 	//// перенос в классы не дает преимуществ и как-то логично чтобы были отдельно 
-	//static double distance(const Point& point1, const Point& point2);   
-	//static double distance(const Line& line, const Point& point);       
-	//static double distance(const Point& point, const Line& line);
+	static double distance(const Point& point1, const Point& point2);   
+	static double distance(std::shared_ptr<Line> line, const Point& point);
+	static double distance(const Point& point, std::shared_ptr<Line> line);
 	static std::vector<Point> findIntersection(std::shared_ptr<Line> line1, std::shared_ptr<Line> line2);
 	//static std::vector<Point> findIntersection(const Circle& circle, const Line& line);
 	//static std::vector<Point> findIntersection(const Line& line, const Circle& circle);
@@ -34,6 +34,7 @@ public:
 	static Point findMiddle(const Point& point1,const Point& point2);
 	//static double findAngle(const Line& line, const Line& line1);
 	//static double findAngle(const Point& point1, const Point& point2, const Point& point3);
+	
 
 	//
 

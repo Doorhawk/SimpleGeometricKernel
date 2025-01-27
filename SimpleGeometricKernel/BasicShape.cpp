@@ -122,6 +122,21 @@ void Depends::notifyChildren() {
         }
     }
 }
+void Depends::setDependsType(DependsTypes dp) {
+    dependsType = dp;
+}
+Depends::~Depends() {
+    // Уведомляем детей о том, что родитель удалён
+    for (auto& childWeakPtr : children) {
+        if (auto child = childWeakPtr.lock()) {
+            child->onParentDeleted(); // Уведомляем ребёнка
+            child->setDependsType(DependsTypes::None);
+        }
+    }
+
+    // Очищаем список детей, удаляя просроченные ссылки
+    removeExpiredChildren();
+}
 DependsTypes Depends::getDependsType() { return dependsType; }
 
 
@@ -141,6 +156,7 @@ bool BasicShape::getValid() {
 
 Point::Point(double x, double y) :BasicShape("point"), x(x), y(y), dependsX(0), dependsY(0) {}
 Point::Point(const Point& other) : BasicShape("point"), x(other.x), y(other.y), dependsX(0), dependsY(0) {}
+Point::Point(const Vector& other):BasicShape("point"), x(other.x), y(other.y), dependsX(0), dependsY(0) {}
 void Point::draw(sf::RenderWindow& window, int num, Font& font) const {
     float r = 3.f * global::size;
     CircleShape point(r);
@@ -169,47 +185,7 @@ void Point::move(double dx, double dy) {
     else if (dependsType == DependsTypes::BelongsToLine) {
         x += dx;
         y += dy;
-
-        auto line = std::dynamic_pointer_cast<Line>(parent.lock());
-        if (!line)
-            throw std::invalid_argument("Parent of point not line ");
-        Point p1 = (*line->p1 - *line->p2);
-        p1 = { -p1.y,p1.x };
-        Point p2 = p1 + *this;
-        p1 = *this;
-        Point q1 = line->getStart();
-        Point q2 = line->getEnd();
-
-        double A1 = p2.x - p1.x;
-        double B1 = -(q2.x - q1.x);
-        double C1 = q1.x - p1.x;
-
-        double A2 = p2.y - p1.y;
-        double B2 = -(q2.y - q1.y);
-        double C2 = q1.y - p1.y;
-
-        double det = A1 * B2 - A2 * B1;
-        if (std::abs(det) < go::getPrecision()) {
-            throw std::invalid_argument("point bolings line error");
-            return;
-        }
-        double t = (C1 * B2 - C2 * B1) / det;
-        // Вычисляем точку пересечения
-        Point intersection;
-        x = p1.x + t * (p2.x - p1.x);
-        y = p1.y + t * (p2.y - p1.y);
-
-        Vector toI(*this - q1);
-        Vector toP2(q2 - q1);
-
-        dependsX = toI.abs();
-
-        if ((toI.normalize() - toP2.normalize()).abs() < go::getPrecision()) {
-
-        }
-        else {
-            dependsX = -dependsX;
-        }
+        init();
     }
     notifyChildren();
 }
@@ -275,14 +251,15 @@ void Point::update() {
     }
     else if (dependsType == DependsTypes::BelongsToLine) {
         
-
         auto line = std::dynamic_pointer_cast<Line>(parent.lock());
         if (!line)
             throw std::invalid_argument("Parent of point not line ");
         Vector vec = (*line->p2 - *line->p1);
+        double abs = vec.abs();
         vec = vec.normalize();
-        x = dependsX*vec.x + line->p1->x;
-        y = dependsX*vec.y + line->p1->y;
+
+        x = abs*dependsX*vec.x + line->p1->x;
+        y = abs*dependsX*vec.y + line->p1->y;
     }
     else {
 
@@ -324,10 +301,11 @@ void Point::init() {
         x = p1.x + t * (p2.x - p1.x);
         y = p1.y + t * (p2.y - p1.y);
 
+        Point midle = go::findMiddle(q1, q2);
         Vector toI(*this - q1);
         Vector toP2(q2 - q1);
 
-        dependsX = toI.abs();
+        dependsX = toI.abs()/toP2.abs();
 
         if ((toI.normalize() - toP2.normalize()).abs() < go::getPrecision()) {
 
@@ -355,11 +333,18 @@ void Line::printInf() const {
     printFamilyInfo();
 }
 void Line::move(double dx, double dy) {
-    isUpdating = true;
-    p1->move(dx, dy);
-    p2->move(dx, dy);
-    isUpdating = false;
-    notifyChildren();
+    if (p1->getDependsType() == DependsTypes::BelongsToLine ||
+        p2->getDependsType() == DependsTypes::BelongsToLine) {
+        cout << "can't rotate line wirch have belong point\n";
+    }
+    else {
+        isUpdating = true;
+        p1->move(dx, dy);
+        p2->move(dx, dy);
+        isUpdating = false;
+        notifyChildren();
+    }
+    
 }
 void Line::rotate(const Point& center, double angle) {
     if (dependsType == DependsTypes::Parallel) {
@@ -367,6 +352,9 @@ void Line::rotate(const Point& center, double angle) {
     }
     else if (dependsType == DependsTypes::Perpendicular) {
         cout << "can't rotate perpendicular line\n";
+    }
+    else if (p1->getDependsType() == DependsTypes::BelongsToLine ||p2->getDependsType() == DependsTypes::BelongsToLine) {
+        cout << "can't rotate line wirch have belong point\n";
     }
     else {
         isUpdating = true;
@@ -439,18 +427,19 @@ void Line::update() {
         auto line = std::dynamic_pointer_cast<Line>(parent.lock());
         if (!line)
             throw std::invalid_argument("Parent of parallel line not line ");
-        Vector vec = { line->p2->x + p1->x - line->p1->x,line->p2->y + p1->y - line->p1->y };
+        Vector vec = { *line->p2 - *line->p1};
         vec = vec.normalize() * 10;
-        (*p2) = vec;
+        (*p2) = *p1 + vec;
     }
     else if (dependsType == DependsTypes::Perpendicular) {
 
         auto line = std::dynamic_pointer_cast<Line>(parent.lock());
         if (!line)
             throw std::invalid_argument("Parent of perpendicular line not line ");
-        (*p2) = *line->p2 - *line->p1;
-        (*p2) = { -(p2->y),p2->x };
-        (*p2) = *p2 + *p1;
+        Vector vec = *line->p2 - *line->p1;
+        vec = { -(vec.y),vec.x};
+        vec = vec.normalize() * 10;
+        (*p2) = *p1 + vec;
 
     }
     else {
@@ -458,7 +447,7 @@ void Line::update() {
     }
 
     notifyChildren();
-    std::cout << "Line updated based on points.\n";
+    //std::cout << "Line updated based on points.\n";
 }
 void Line::init() {
 

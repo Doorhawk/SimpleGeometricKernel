@@ -2,7 +2,9 @@
 #include <SFML/Graphics.hpp>
 #include "ShapeManager.h"
 #include "global.h"
+#include "enums.h"
 using namespace sf;
+
 
 class WindowManager {
 private:
@@ -12,20 +14,78 @@ private:
     bool isDragging;
     Vector2f prevMousePos;
     Font font;
+    wMode mode = wMode::figureMove;
+    std::shared_ptr<BasicShape> selectedShape = nullptr; // Выбранная фигура
+    Point startPose;
+    int wHeight;
+    int wWidth;
 
     void controls(Event event) {
 
         if (event.type == Event::Closed) {
             window.close();
         }
-
-        // Удержание мыши для перемещения
-        if (event.type == Event::MouseButtonPressed && event.mouseButton.button == Mouse::Left) {
-            isDragging = true;
-            prevMousePos = window.mapPixelToCoords(Mouse::getPosition(window), view);
+        if (event.type == sf::Event::KeyPressed) {
+            if (event.key.code == sf::Keyboard::M) {
+                mode = wMode::figureMove;
+            }
+            else if (event.key.code == sf::Keyboard::C) {
+                mode = wMode::cameraMove;
+            }
         }
-        if (event.type == Event::MouseButtonReleased && event.mouseButton.button == Mouse::Left) {
-            isDragging = false;
+        if(mode == wMode::cameraMove){
+            // Удержание мыши для перемещения
+            if (event.type == Event::MouseButtonPressed && event.mouseButton.button == Mouse::Left) {
+                isDragging = true;
+                prevMousePos = window.mapPixelToCoords(Mouse::getPosition(window), view);
+            }
+            if (event.type == Event::MouseButtonReleased && event.mouseButton.button == Mouse::Left) {
+                isDragging = false;
+            }
+        }
+        else if(mode == wMode::figureMove) {
+            if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+                sf::Vector2f mousePos = getMouseWorldPosition();
+                double minDistance = std::numeric_limits<double>::max();
+                std::shared_ptr<BasicShape> PointMin = nullptr;
+                // Ищем ближайшую фигуру к месту клика
+                float threshold = view.getSize().x * 0.02f;
+                for (const auto& [index, shape] : shapeManager.shapes) {
+                    if (shape && shape->getType() == "point") { // Проверяем только точки
+                        double distance = getDistance(shape, mousePos.x, mousePos.y);
+                        if (distance < minDistance && distance < threshold) {
+                            selectedShape = shape;
+                            minDistance = distance;
+                        }
+                    }
+                }
+
+                // Если точка не найдена, ищем ближайшую фигуру
+                if (!selectedShape) {
+                    minDistance = std::numeric_limits<double>::max(); // Сброс минимальной дистанции
+                    for (const auto& [index, shape] : shapeManager.shapes) {
+                        if (shape) {
+                            double distance = getDistance(shape, mousePos.x, mousePos.y);
+                            if (distance < minDistance && distance < threshold) {
+                                selectedShape = shape;
+                                minDistance = distance;
+                            }
+                        }
+                    }
+                }
+
+                // Если нашли фигуру, сохраняем её начальную позицию
+                if (selectedShape) {
+                    startPose = Point(mousePos.x, mousePos.y);
+                    isDragging = true;
+                }
+            }
+
+            // Отпускание кнопки мыши
+            if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left) {
+                isDragging = false; // Останавливаем перемещение
+                selectedShape = nullptr;
+            }
         }
 
         // Масштабирование через колёсико мыши
@@ -35,6 +95,43 @@ private:
             view.zoom(zoomFactor);
         }
 
+    }
+    double getDistance(std::shared_ptr<BasicShape> shape,float x, float y) {
+        if (shape->getType() == "point") {
+            auto point = dynamic_pointer_cast<Point>(shape);
+            if (point) {
+                return go::distance(*point, Point(x, y))/1.2;
+            }
+        }else if (shape->getType() == "line") {
+            auto line = dynamic_pointer_cast<Line>(shape);
+            if (line) {
+                return go::distance(line, Point(x, y));
+            }
+        }
+        return 10000;
+    }
+    sf::Vector2f getMouseWorldPosition() {
+        // Получаем текущую позицию мыши в оконных координатах
+        sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
+        // Преобразуем оконные координаты в мировые
+        return window.mapPixelToCoords(pixelPos);
+    }
+    void moveFigure() {
+        if (isDragging && mode == wMode::cameraMove) {
+            Vector2f currentMousePos = window.mapPixelToCoords(Mouse::getPosition(window), view);
+            Vector2f offset = prevMousePos - currentMousePos;
+            view.move(offset);
+        }
+        else if (isDragging && selectedShape) {
+            sf::Vector2f mousePos = getMouseWorldPosition();
+            double dx = mousePos.x - startPose.getX();
+            double dy = mousePos.y - startPose.getY();
+
+            selectedShape->move(dx, dy);
+
+            // Обновляем начальную позицию для следующего шага
+            startPose.move(dx, dy);
+        }
     }
     void drawAxes() {
 
@@ -53,30 +150,40 @@ private:
         axes.append(sf::Vertex(sf::Vector2f(0, -length / 2), color)); // Верхняя граница
         axes.append(sf::Vertex(sf::Vector2f(0, length / 2), color));  // Нижняя граница
 
-        //// Добавляем штрихи для оси X
-        //for (float x = -length / 2; x <= length / 2; x += tickSpacing) {
-        //    if (x != 0) { // Пропускаем центр
-        //        axes.append(sf::Vertex(sf::Vector2f(x, -tickSize / 2), color));
-        //        axes.append(sf::Vertex(sf::Vector2f(x, tickSize / 2), color));
-        //    }
-        //}
-
-        //// Добавляем штрихи для оси Y
-        //for (float y = -length / 2; y <= length / 2; y += tickSpacing) {
-        //    if (y != 0) { // Пропускаем центр
-        //        axes.append(sf::Vertex(sf::Vector2f(-tickSize / 2, y), color));
-        //        axes.append(sf::Vertex(sf::Vector2f(tickSize / 2, y), color));
-        //    }
-        //}
-
-        // Рисуем массив вершин
         window.draw(axes);
+
+        string mod_name = "C/M to swirch:\n";
+        switch (mode)  
+        {
+        case wMode::cameraMove:
+            mod_name += "mode: camera";
+            break;
+        case wMode::figureMove:
+            mod_name += "mode: figure";
+            break;
+        default:
+            break;
+        }
+
+
+        window.setView(window.getDefaultView()); // Сбрасываем представление
+        sf::Text text;
+        text.setFont(font);                     // Устанавливаем шрифт
+        text.setString(mod_name);        // Устанавливаем текст
+        text.setCharacterSize(14);              // Размер текста в пикселях
+        text.setFillColor(sf::Color::Black);    // Цвет текста
+        text.setScale(1, 1);
+        text.setPosition(20,20);
+        window.draw(text);
+        window.setView(view);
     }
 public:
-    WindowManager(ShapeManager& shapeManager) : shapeManager(shapeManager) {
+    WindowManager(ShapeManager& shapeManager) : shapeManager(shapeManager),startPose(0,0) {
+        wHeight = 800;
+        wWidth = 800;
         window.create(VideoMode(800, 800), "Scene");
         window.setFramerateLimit(60);
-        view.setSize(800.f, -800.f); // Инвертируем ось Y
+        view.setSize(800, -800); // Инвертируем ось Y
         view.setCenter(0.f, 0.f); // Центрируем вид
         global::size *= 0.1;
         view.zoom(0.1);
@@ -94,20 +201,20 @@ public:
                 controls(event);
             }
             // Перемещение вида при удержании мыши
-            if (isDragging) {
-                Vector2f currentMousePos = window.mapPixelToCoords(Mouse::getPosition(window), view);
-                Vector2f offset = prevMousePos - currentMousePos;
-                view.move(offset);
-            }
+            
             // Устанавливаем обновлённый вид
             window.setView(view);
 
             window.clear(Color::White);
 
+            moveFigure();
             shapeManager.drawAll(window,font);
             drawAxes();
 
             window.display();
         }
+    }
+    void setMode(wMode newmode) {
+        mode = newmode;
     }
 };
