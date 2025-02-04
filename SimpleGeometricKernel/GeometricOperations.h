@@ -1,7 +1,7 @@
 #pragma once
 #include <optional>
 #include <vector>
-
+#include <climits>
 class Point;
 class Line;
 class Circle;

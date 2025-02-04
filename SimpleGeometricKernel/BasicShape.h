@@ -12,7 +12,6 @@ using namespace std;
 class Point;
 class Line;
 
-
 class Vector {
 private:
     double x, y;
@@ -35,13 +34,11 @@ public:
     Vector operator/(double scalar) const;
 };
 
-
-
 class Depends : public std::enable_shared_from_this<Depends> {
 private:
 protected:
     std::vector<std::weak_ptr<Depends>> children;
-    std::weak_ptr<Depends> parent;
+    std::vector <std::weak_ptr<Depends>> parent;
     DependsTypes dependsType = DependsTypes::None;
     bool isUpdating = false;
     string type;
@@ -54,7 +51,7 @@ public:
     void setDependsType(DependsTypes dp);
     void setIndex(int _index);
     // Установка родителя с указанием типа зависимости
-    void setParent(DependsTypes _type, const std::shared_ptr<Depends>& _parent);
+    void setParent(DependsTypes _type, const std::vector <std::weak_ptr<Depends>>& _parent);
     // Добавление ребёнка
     void addChild(const std::shared_ptr<Depends>& child);
     void printFamilyInfo() const;
@@ -117,8 +114,6 @@ public:
     void update() override;
     void init() override;
 };
-
-
 class Line : public virtual BasicShape {
 protected:
     std::shared_ptr<Point> p1, p2;

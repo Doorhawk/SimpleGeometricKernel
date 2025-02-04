@@ -432,7 +432,8 @@ void commandProcessor(ShapeManager& shapeManager) {
                 auto p2 = std::make_shared<Point>(*point + Point(10,10));
                 if (p2) {
                     auto parallelLine = shapeManager.addBasicShape(Line::create(point, p2));
-                    parallelLine->setParent(DependsTypes::Parallel, line);
+                    std::vector <std::weak_ptr<Depends>> lineWPtr = { line };
+                    parallelLine->setParent(DependsTypes::Parallel, lineWPtr);
                 }
                     
 
@@ -497,7 +498,8 @@ void commandProcessor(ShapeManager& shapeManager) {
                 auto p2 = std::make_shared<Point>(*point + Point(10, 10));
                 if (p2) {
                     auto parallelLine = shapeManager.addBasicShape(Line::create(point, p2));
-                    parallelLine->setParent(DependsTypes::Perpendicular, line);
+                    std::vector <std::weak_ptr<Depends>> lineWPtr = { line };
+                    parallelLine->setParent(DependsTypes::Perpendicular, lineWPtr);
                 }
 
 
@@ -513,6 +515,77 @@ void commandProcessor(ShapeManager& shapeManager) {
 
 
             }
+        else if (command == "medianPerpendicular" || command == "mp") {
+            
+            std::string centerType;
+            std::cin >> centerType; // Определяем тип центра (c или p)
+
+            shared_ptr<Point> point1;
+            shared_ptr<Point> point;
+            if (centerType == "c") { // Центр задан координатами
+                float x, y;
+                float x1, y1;
+                std::cin >> x >> y;
+                std::cin >> x1 >> y1;
+                point = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(x, y)));
+                point1 = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(x1, y1)));
+            }
+            else if (centerType == "p") { // Центр задан индексом точки
+                int centerIndex;
+                std::cin >> centerIndex;
+                auto centerShape = shapeManager.getBasicShape(centerIndex);
+                point = std::dynamic_pointer_cast<Point>(centerShape);
+
+                std::cin >> centerIndex;
+                centerShape = shapeManager.getBasicShape(centerIndex);
+                point1 = std::dynamic_pointer_cast<Point>(centerShape);
+
+                if (!point||!point1) {
+                    std::cout << "Shape at index " << centerIndex << " is not a point.\n";
+                    continue;
+                }
+            }
+            else {
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                std::cout << "Invalid point type. Use 'c' for coordinates or 'p' for point index.\n";
+                continue;
+            }
+
+            auto p1 = std::make_shared<Point>(Point(0, 0));
+            auto p2 = std::make_shared<Point>(Point(10, 10));
+            
+            auto medianPerpendicular = shapeManager.addBasicShape(Line::create(p1, p2));
+            std::vector <std::weak_ptr<Depends>> pointVec = { point1, point };
+            medianPerpendicular->setParent(DependsTypes::MedianPerpendicular, pointVec);
+                
+        }
+        else if (command == "intersection" || command == "inter") {
+            int index1 = 0, index2 = 0;
+            string type1, type2;
+            cin >> type1 >> index1;
+            cin >> type2>> index2;
+
+            auto shape1 = shapeManager.getBasicShape(index1);
+            auto shape2 = shapeManager.getBasicShape(index2);
+
+            if (type1 == "line" && type2 == "line") {
+
+                auto line1 = dynamic_pointer_cast<Line>(shape1);
+                auto line2 = dynamic_pointer_cast<Line>(shape2);
+
+                if (!line1 || !line2) {
+                    cout << "shape not line on " << index1 << " or " << index2<<endl;
+                }
+
+                auto point = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(0, 0)));
+
+                
+                std::vector <std::weak_ptr<Depends>> lineWPtr = { line1,line2 };
+                point->setParent(DependsTypes::IntersectionLineLine, lineWPtr);
+            }
+
+        }
         else if (command == "belong") {
 
             int index;
@@ -556,8 +629,8 @@ void commandProcessor(ShapeManager& shapeManager) {
                     cout << "not line at " << index << endl;
                     continue;
                 }
-
-                point->setParent(DependsTypes::BelongsToLine, line);
+                std::vector <std::weak_ptr<Depends>> lineWPtr = { line };
+                point->setParent(DependsTypes::BelongsToLine, lineWPtr);
                 
 
             }
@@ -589,6 +662,7 @@ void commandProcessor(ShapeManager& shapeManager) {
             std::cout << "Exiting program...\n";
             exit(0);
         }
+        
         else {
              std::cin.clear();
              std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');

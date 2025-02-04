@@ -57,7 +57,7 @@ string Depends::getType() const {
     return type;
 }
 void Depends::setIndex(int _index) { index = _index; }
-void Depends::setParent(DependsTypes _type, const std::shared_ptr<Depends>& _parent) {
+void Depends::setParent(DependsTypes _type,const std::vector <std::weak_ptr<Depends>>& _parent) {
     // Если уже есть родитель, отписываемся от него
 
     parent = _parent;
@@ -66,8 +66,13 @@ void Depends::setParent(DependsTypes _type, const std::shared_ptr<Depends>& _par
     // очистака невалидных детей
 
     // Регистрируемся как ребёнок у нового родителя
-    if (_parent) {
-        _parent->addChild(shared_from_this());
+    if (!parent.empty()) {
+        for (auto& weakP : parent) {
+            if (auto parentPtr = weakP.lock()) {
+                parentPtr->addChild(shared_from_this());
+            }
+        }
+        
     }
     init();
     update();
@@ -78,9 +83,12 @@ void Depends::addChild(const std::shared_ptr<Depends>& child) {
 }
 void Depends::printFamilyInfo() const {
 
-    // Выводим родителя, если он есть
-    if (auto p = parent.lock()) {
-        std::cout << "  Parent: " << p->type << " " << p->index << "\n";
+    if (!parent.empty()) {
+        for (auto& weakP : parent) {
+            if (auto parentPtr = weakP.lock()) {
+                std::cout << "  Parent: " << parentPtr->type << " " << parentPtr->index << "\n";
+            }
+        }
     }
     else {
         std::cout << "  Parent: None\n";
@@ -110,7 +118,7 @@ void Depends::removeExpiredChildren() {
         children.end());
 }
 void Depends::onParentDeleted() {
-    parent.reset();  // Сбрасываем родителя
+    parent.clear();  // Сбрасываем родителя
 }
 void Depends::notifyChildren() {
     for (auto& weakChild : children) {
@@ -187,6 +195,9 @@ void Point::move(double dx, double dy) {
         y += dy;
         init();
     }
+    else if (dependsType == DependsTypes::IntersectionLineLine) {
+        cout << "cant move intersection point\n";
+    }
     notifyChildren();
 }
 void Point::rotate(const Point& center, double angle) {
@@ -202,6 +213,9 @@ void Point::rotate(const Point& center, double angle) {
     }
     else if (dependsType == DependsTypes::BelongsToLine) {
         cout << "can't rotate belongs point\n";
+    }
+    else if (dependsType == DependsTypes::IntersectionLineLine) {
+        cout << "cant rotate intersection point\n";
     }
 
     notifyChildren();
@@ -250,8 +264,12 @@ void Point::update() {
 
     }
     else if (dependsType == DependsTypes::BelongsToLine) {
-        
-        auto line = std::dynamic_pointer_cast<Line>(parent.lock());
+        if (parent.empty())
+            throw std::invalid_argument("update point with BelongsToLine - error: parent.empty() = true");
+        if (parent.size()!=1)
+            throw std::invalid_argument("update point with BelongsToLine - error: parent.size() != 1");
+
+        auto line = std::dynamic_pointer_cast<Line>(parent[0].lock());
         if (!line)
             throw std::invalid_argument("Parent of point not line ");
         Vector vec = (*line->p2 - *line->p1);
@@ -260,6 +278,21 @@ void Point::update() {
 
         x = abs*dependsX*vec.x + line->p1->x;
         y = abs*dependsX*vec.y + line->p1->y;
+    }
+    else if (dependsType == DependsTypes::IntersectionLineLine) {
+        if (parent.empty())
+            throw std::invalid_argument("update point with BelongsToLine - error: parent.empty() = true");
+        if (parent.size() != 2)
+            throw std::invalid_argument("update point with BelongsToLine - error: parent.size() != 2");
+        auto line1 = std::dynamic_pointer_cast<Line>(parent[0].lock());
+        auto line2 = std::dynamic_pointer_cast<Line>(parent[1].lock());
+
+        std::vector<Point> inter = go::findIntersection(line1, line2);
+
+        if (!inter.empty()) {
+            x = inter[0].x;
+            y = inter[0].y;
+        }
     }
     else {
 
@@ -271,8 +304,11 @@ void Point::init() {
         
     }
     else if (dependsType == DependsTypes::BelongsToLine) {
-       
-        auto line = std::dynamic_pointer_cast<Line>(parent.lock());
+        if (parent.empty())
+            throw std::invalid_argument("update point with BelongsToLine - error: parent.empty() = true");
+        if (parent.size() != 1)
+            throw std::invalid_argument("update point with BelongsToLine - error: parent.size() != 1");
+        auto line = std::dynamic_pointer_cast<Line>(parent[0].lock());
         if (!line)
             throw std::invalid_argument("Parent of point not line ");
         Point p1 = (*line->p1 - *line->p2);
@@ -335,7 +371,10 @@ void Line::printInf() const {
 void Line::move(double dx, double dy) {
     if (p1->getDependsType() == DependsTypes::BelongsToLine ||
         p2->getDependsType() == DependsTypes::BelongsToLine) {
-        cout << "can't rotate line wirch have belong point\n";
+        cout << "can't move line wirch have belong point\n";
+    }
+    else if (dependsType == DependsTypes::MedianPerpendicular) {
+        cout << "can't move middle perpendicular\n";
     }
     else {
         isUpdating = true;
@@ -356,6 +395,9 @@ void Line::rotate(const Point& center, double angle) {
     else if (p1->getDependsType() == DependsTypes::BelongsToLine ||p2->getDependsType() == DependsTypes::BelongsToLine) {
         cout << "can't rotate line wirch have belong point\n";
     }
+    else if (dependsType == DependsTypes::MedianPerpendicular) {
+        cout << "can't rotate middle perpendicular\n";
+    }
     else {
         isUpdating = true;
         p1->rotate(center, angle);
@@ -365,16 +407,6 @@ void Line::rotate(const Point& center, double angle) {
     }
 
 }
-/*void updateParallel(const Point& point) const {
-    Point p = point;
-    Point q = { p2->x + point.x - p1->x,p2->y + point.y - p1->y };
-    return Line(p, q);
-}
-Line getPerpendicular(const Point& point) const {
-    Point p = (p2 - p1);
-    p = { -p.y,p.x };
-    return Line(p + point, point);
-}*/
 Line& Line::operator=(const Line& other) {
     if (this != &other) {
         p1 = other.p1;
@@ -424,7 +456,11 @@ void Line::update() {
 
     }
     else if (dependsType == DependsTypes::Parallel) {
-        auto line = std::dynamic_pointer_cast<Line>(parent.lock());
+        if (parent.empty())
+            throw std::invalid_argument("update line with Parallel - error: parent.empty() == true");
+        if (parent.size() != 1)
+            throw std::invalid_argument("update line with Parallel - error: parent.size() != 1");
+        auto line = std::dynamic_pointer_cast<Line>(parent[0].lock());
         if (!line)
             throw std::invalid_argument("Parent of parallel line not line ");
         Vector vec = { *line->p2 - *line->p1};
@@ -432,8 +468,11 @@ void Line::update() {
         (*p2) = *p1 + vec;
     }
     else if (dependsType == DependsTypes::Perpendicular) {
-
-        auto line = std::dynamic_pointer_cast<Line>(parent.lock());
+        if (parent.empty())
+            throw std::invalid_argument("update line with Perpendicular - error: parent.empty() == true");
+        if (parent.size() != 1)
+            throw std::invalid_argument("update line with Perpendicular - error: parent.size() != 1");
+        auto line = std::dynamic_pointer_cast<Line>(parent[0].lock());
         if (!line)
             throw std::invalid_argument("Parent of perpendicular line not line ");
         Vector vec = *line->p2 - *line->p1;
@@ -441,6 +480,22 @@ void Line::update() {
         vec = vec.normalize() * 10;
         (*p2) = *p1 + vec;
 
+    }
+    else if (dependsType == DependsTypes::MedianPerpendicular) {
+        if (parent.empty())
+            throw std::invalid_argument("update line with MedianPerpendicular - error: parent.empty() == true");
+        if (parent.size() != 2)
+            throw std::invalid_argument("update line with MedianPerpendicular - error: parent.size() != 2");
+        auto point1 = std::dynamic_pointer_cast<Point>(parent[0].lock());
+        auto point2 = std::dynamic_pointer_cast<Point>(parent[1].lock());
+
+        Point midle = go::findMiddle(*point1, *point2);
+
+        *p1 = midle;
+        Vector vec = *point1 - *point2;
+        vec = { -(vec.y),vec.x };
+        vec = vec.normalize() * 10;
+        (*p2) = *p1 + vec;
     }
     else {
 

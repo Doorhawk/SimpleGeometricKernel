@@ -6,15 +6,6 @@
     
 
 
-// надо продумать файловую систему и раскичать по файлам BasicShape
-//Point Point::operator+(const Vector& other) const {
-//	return Point(x + other.x, y + other.y);
-//}
-//Point Point::operator-(const Vector& other) const {
-//	return Point(x - other.x, y - other.y);
-//}
-
-
 
 double go::precision = 1e-8;
 
@@ -122,11 +113,15 @@ std::vector<Point> go::findIntersection(std::shared_ptr<Line> line1, std::shared
 	double C2 = line2->p1->y - line1->p1->y;
 
 	double det = A1 * B2 - A2 * B1;
-	if (std::abs(det) < precision) {
-		return {};
-	}
 
-	double t = (C1 * B2 - C2 * B1) / det;
+	double t = 0;
+	if (std::abs(det) < precision)
+		if (det > 0)
+			t = DBL_MAX;
+		else
+			t = DBL_MIN;
+	else
+		t = (C1 * B2 - C2 * B1) / det;
 
 	// Вычисляем точку пересечения
 	Point intersection;

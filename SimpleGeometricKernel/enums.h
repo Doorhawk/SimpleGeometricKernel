@@ -3,8 +3,9 @@ enum class DependsTypes {
     None,
     Parallel,
     Perpendicular,
+    MedianPerpendicular,
     BelongsToLine,
-    Intersection
+    IntersectionLineLine
 };
 
 enum class wMode {
