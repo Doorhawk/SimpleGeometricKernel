@@ -1,6 +1,8 @@
 #pragma once
-
 #include <string>
+
+
+
 enum class DependsTypes {
     None,
     Parallel,
@@ -10,6 +12,8 @@ enum class DependsTypes {
     BelongsToLine,
     IntersectionLineLine
 };
+
+
 
 enum class wMode {
     cameraMove,
@@ -21,4 +25,5 @@ enum ShapeType {
     st_line,
     st_circle
 };
+
 

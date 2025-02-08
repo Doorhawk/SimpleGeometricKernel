@@ -18,7 +18,7 @@ private:
     std::unordered_map<int, std::shared_ptr<BasicShape>> shapes;
     int nextIndex = 0;
     friend class WindowManager;
-
+    Color defaultColor = Color::Black;
 public:
     template <typename T, typename = std::enable_if_t<std::is_base_of_v<BasicShape, T>>>
     std::shared_ptr<BasicShape> addBasicShape(const T& shape) {
@@ -32,6 +32,7 @@ public:
             LOG_INFO("Shape added successfully, index = " + std::to_string(nextIndex));
             shapes[nextIndex] = ptr;
             shapes[nextIndex]->setIndex(nextIndex);
+            shapes[nextIndex]->setColor(defaultColor);
             shapesModified = true;
             cv.notify_all();
             return shapes[nextIndex++];
@@ -55,6 +56,7 @@ public:
             LOG_INFO("Shape added successfully, index = " + std::to_string(nextIndex));
             shapes[nextIndex] = shape;
             shapes[nextIndex]->setIndex(nextIndex);
+            shapes[nextIndex]->setColor(defaultColor);
             shapesModified = true;
             cv.notify_all();
             return shapes[nextIndex++];
@@ -139,6 +141,26 @@ public:
         else {
             LOG_WARNING("Shape not found, index = " + std::to_string(index) + " out of range");
             throw std::invalid_argument("Out of range");
+        }
+    }
+
+    void setDefaultColor(Color color) {
+        defaultColor = color;
+    }
+    void setAllColor(Color color) {
+        for (const auto& [index, shape] : shapes) {
+            if (!shape->getValid()) continue;
+            try {
+                if (shape) {
+                    shape->setColor(color);
+                }
+                else {
+                    LOG_WARNING("cant set new color");
+                }
+            }
+            catch (...) {
+                LOG_ERROR("Unknown exception during set color. Skipping.");
+            }
         }
     }
 };

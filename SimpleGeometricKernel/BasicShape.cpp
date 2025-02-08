@@ -5,8 +5,22 @@ std::string toString(ShapeType shape) {
     switch (shape) {
     case st_point:  return "point";
     case st_line:   return "line";
+    case st_circle: return "circle";
     }
     return "";
+}
+std::string toString(DependsTypes dp) {
+    switch (dp)
+    {
+    case DependsTypes::None:                    return "None";
+    case DependsTypes::Parallel:                return "Parallel";
+    case DependsTypes::Perpendicular:           return "Perpendicular";
+    case DependsTypes::MedianPerpendicular:     return "MedianPerpendicular";
+    case DependsTypes::Bisectrix:               return "Bisectrix";
+    case DependsTypes::BelongsToLine:           return "BelongsToLine";
+    case DependsTypes::IntersectionLineLine:    return "IntersectionLineLine";
+    default:                                    return "Unknown";
+    }
 }
 
 double Vector::abs() const {
@@ -65,6 +79,10 @@ Depends::Depends(const ShapeType type) : type(type) {}
 ShapeType Depends::getType() const {
     return type;
 }
+void Depends::setColor(Color newColor) {
+    color = newColor;
+    
+}
 void Depends::setIndex(int _index) { index = _index; }
 void Depends::setParent(DependsTypes _type,const std::vector <std::weak_ptr<Depends>>& _parent) {
     // Если уже есть родитель, отписываемся от него
@@ -90,34 +108,41 @@ void Depends::addChild(const std::shared_ptr<Depends>& child) {
     removeExpiredChildren();
     children.push_back(child);
 }
-void Depends::printFamilyInfo() const {
+string Depends::printFamilyInfo() const {
+
+    std::ostringstream oss;
+
+    oss << "Depends: " << toString(dependsType) << endl;
 
     if (!parent.empty()) {
+        oss << "  Parent: ";
         for (auto& weakP : parent) {
             if (auto parentPtr = weakP.lock()) {
-                std::cout << "  Parent: " << toString(parentPtr->type) << " " << parentPtr->index << "\n";
+                oss << toString(parentPtr->type)<<" " << parentPtr->index<<", ";
             }
         }
+        oss << endl;
     }
     else {
-        std::cout << "  Parent: None\n";
+        oss << "  Parent: None\n";
     }
 
     // Выводим всех детей
-    std::cout << "  Children: ";
+    oss << "  Children: ";
     bool hasChildren = false;
     for (const auto& weakChild : children) {
         if (auto child = weakChild.lock()) {
 
-            std::cout << toString(child->type) << " " << child->index << ",";
+            oss << toString(child->type) << " " << child->index << ", ";
             hasChildren = true;
         }
     }
-
     if (!hasChildren) {
-        std::cout << "None";
+        oss << "None";
     }
-    std::cout << "\n";
+    oss << "\n";
+
+    return oss.str();
 }
 void Depends::removeExpiredChildren() {
     children.erase(
@@ -160,7 +185,9 @@ void Depends::onDelete() {
     parent.clear();
 }
 DependsTypes Depends::getDependsType() { return dependsType; }
-
+Color Depends::getColor() {
+    return color;
+}
 
 BasicShape::BasicShape(const ShapeType type) :Depends(type), valid(true) {}
 void BasicShape::setInvalid() {
@@ -183,7 +210,7 @@ void Point::draw(sf::RenderWindow& window, int num, Font& font) const {
     float r = 3.f * global::size;
     CircleShape point(r);
     point.setPosition(x - r, y - r);
-    point.setFillColor(Color::Black);
+    point.setFillColor(color);
     window.draw(point);
 
     Text text;
@@ -192,12 +219,13 @@ void Point::draw(sf::RenderWindow& window, int num, Font& font) const {
     text.setPosition(x - 25 * global::size, y + 15 * global::size);
     text.setString("p" + std::to_string(num));
     text.setCharacterSize(15);
-    text.setFillColor(Color::Black);
+    text.setFillColor(color);
     window.draw(text);
 }
-void Point::printInf() const {
-    cout << "point: (" << x << ", " << y << ")" << endl;
-    printFamilyInfo();
+std::string Point::printInf() const {
+    ostringstream oss;
+    oss << "point: "<< index <<" (" << x << ", " << y << ")" << endl<< printFamilyInfo();
+    return oss.str();
 }
 void Point::move(double dx, double dy) {
     if (dependsType == DependsTypes::None) {
@@ -378,9 +406,10 @@ std::shared_ptr<Line> Line::create(std::shared_ptr<Point> p1, std::shared_ptr<Po
     line->p2->addChild(line);
     return line;
 }
-void Line::printInf() const {
-    cout << "line " << index << " : (" << p1->x << ", " << p1->y << "), (" << p2->x << ", " << p2->y << ")" << endl;
-    printFamilyInfo();
+std::string Line::printInf() const {
+    ostringstream oss;
+    oss << "line " << index << " : (" << p1->x << ", " << p1->y << "), (" << p2->x << ", " << p2->y << ")" << endl<<printFamilyInfo();
+    return oss.str();
 }
 void Line::move(double dx, double dy) {
     if (p1->getDependsType() == DependsTypes::BelongsToLine ||
@@ -438,19 +467,19 @@ Point Line::getEnd() const {
     return *p2;
 }
 void Line::draw(sf::RenderWindow& window, int num, sf::Font& font) const {
-
+    
     View view = window.getView();
     float size = view.getSize().x + abs(view.getCenter().x) * 2 + abs(view.getCenter().y) * 2;
     sf::VertexArray line(sf::Lines);
     if ((p2->x - p1->x) != 0) {
         float ysize = (size - p1->x) * (p2->y - p1->y) / (p2->x - p1->x) + p1->y;
         float y_size = (-size - p1->x) * (p2->y - p1->y) / (p2->x - p1->x) + p1->y;
-        line.append(sf::Vertex(sf::Vector2f(size, ysize), Color::Black)); // Левая граница
-        line.append(sf::Vertex(sf::Vector2f(-size, y_size), Color::Black));  // Правая граница
+        line.append(sf::Vertex(sf::Vector2f(size, ysize), color)); // Левая граница
+        line.append(sf::Vertex(sf::Vector2f(-size, y_size), color));  // Правая граница
     }
     else {
-        line.append(sf::Vertex(sf::Vector2f(p1->x, size), Color::Black)); // Левая граница
-        line.append(sf::Vertex(sf::Vector2f(p1->x, -size), Color::Black));
+        line.append(sf::Vertex(sf::Vector2f(p1->x, size), color)); // Левая граница
+        line.append(sf::Vertex(sf::Vector2f(p1->x, -size), color));
     }
     window.draw(line);
 
@@ -463,7 +492,7 @@ void Line::draw(sf::RenderWindow& window, int num, sf::Font& font) const {
     text.setPosition(mid.x + 15 * global::size, mid.y + 15 * global::size);
     text.setString("L" + std::to_string(num));
     text.setCharacterSize(15);
-    text.setFillColor(Color::Black);
+    text.setFillColor(color);
     window.draw(text);
 
 }
@@ -554,17 +583,26 @@ std::shared_ptr<Circle> Circle::create(std::shared_ptr<Point> _center, std::shar
     circle->onCircle->addChild(circle);
     return circle;
 }
-void Circle::printInf() const  {
-    cout << "circle: center (" << center->x << ", " << center->y << "), radius = " << radius << endl;
-
+std::string Circle::printInf() const  {
+    ostringstream oss;
+    oss << "circle " << index << " : center (" << center->x << ", " << center->y << "), radius = " << radius << endl<<printFamilyInfo();
+    return oss.str();
 }
 void Circle::move(double dx, double dy)  {
+    
+    isUpdating = true;
     center->move(dx, dy);
     onCircle->move(dx, dy);
+    isUpdating = false;
+    notifyChildren();
 }
 void Circle::rotate(const Point& _center, double angle) {
+    
+    isUpdating = true;
     center->rotate(_center, angle);
     onCircle->rotate(_center, angle);
+    isUpdating = false;
+    notifyChildren();
 }
 Circle& Circle::operator=(const Circle& other) {
     if (this != &other) {
@@ -582,7 +620,7 @@ void Circle::draw(sf::RenderWindow& window, int num, sf::Font& font) const {
     shape.setPosition(center->x - radius, center->y - radius); // Устанавливаем позицию круга
     shape.setFillColor(sf::Color::Transparent); // Убираем заливку
     shape.setOutlineThickness(1.f * global::size); // Устанавливаем толщину контура
-    shape.setOutlineColor(sf::Color::Black); // Устанавливаем цвет контура
+    shape.setOutlineColor(color); // Устанавливаем цвет контура
     window.draw(shape);
 
     Text text;
@@ -591,7 +629,7 @@ void Circle::draw(sf::RenderWindow& window, int num, sf::Font& font) const {
     text.setPosition(center->x - radius, center->y - radius);
     text.setString("c" + std::to_string(num));
     text.setCharacterSize(15);
-    text.setFillColor(Color::Black);
+    text.setFillColor(color);
     window.draw(text);
 }
 std::shared_ptr<Point> Circle::getCenter() const {

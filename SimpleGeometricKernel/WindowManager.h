@@ -8,6 +8,7 @@
 using namespace sf;
 
 
+
 class WindowManager {
 private:
     ShapeManager& shapeManager;
@@ -22,6 +23,9 @@ private:
     int wHeight;
     int wWidth;
     std::atomic<bool>& isRunning;
+    std::string infAboutSelectedShape = "";
+    Color startColor = Color::Black;
+
 
     void controls(Event event) {
 
@@ -53,6 +57,11 @@ private:
         }
         else if(mode == wMode::figureMove) {
             if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+                if (selectedShape) {
+                    selectedShape->setColor(startColor);
+                    selectedShape = nullptr;
+                    infAboutSelectedShape = "";
+                }
                 LOG_DEBUG("LBM Clicked");
                 sf::Vector2f mousePos = getMouseWorldPosition();
                 double minDistance = std::numeric_limits<double>::max();
@@ -89,7 +98,10 @@ private:
                 if (selectedShape) {
                     LOG_DEBUG(std::format("starting position = ({}, {})", mousePos.x, mousePos.y));
                     startPose = Point(mousePos.x, mousePos.y);
+                    infAboutSelectedShape = selectedShape->printInf();
                     isDragging = true;
+                    startColor = selectedShape->getColor();
+                    selectedShape->setColor(Color::Blue);
                 }
             }
 
@@ -97,7 +109,8 @@ private:
             if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left) {
                 LOG_DEBUG("LBM Released");
                 isDragging = false; // Останавливаем перемещение
-                selectedShape = nullptr;
+                //selectedShape->setColor(Color::Black);
+                //selectedShape = nullptr;
             }
         }
 
@@ -188,7 +201,7 @@ private:
         window.setView(window.getDefaultView()); // Сбрасываем представление
         sf::Text text;
         text.setFont(font);                     // Устанавливаем шрифт
-        text.setString(mod_name);        // Устанавливаем текст
+        text.setString(mod_name+"\n\n"+ infAboutSelectedShape);        // Устанавливаем текст
         text.setCharacterSize(14);              // Размер текста в пикселях
         text.setFillColor(sf::Color::Black);    // Цвет текста
         text.setScale(1, 1);

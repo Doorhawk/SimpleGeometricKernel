@@ -12,8 +12,9 @@
 
 
 template <typename... Args>
+// проверяет корректность ввода чисел
 bool inputValidation(Args&... args) {
-    (std::cin >> ... >> args);  // Ввод всех аргументов
+    (std::cin >> ... >> args);  
     if (std::cin.fail()) {
         std::cout << "Error! invalid input,enter numbers" << std::endl;
         LOG_ERROR("Invalid input, enter numbers");
@@ -22,6 +23,29 @@ bool inputValidation(Args&... args) {
         return false;
     }
     return true;
+}
+// читает строку и разбивает ее на массив индексов, проверяет на кооректность ввод
+// "str = "1,2,3,4" -> vec = {1, 2, 3, 4}"
+bool parseIndices(std::vector<int>& indices) {
+    std::string input;
+    std::getline(std::cin, input); // Читаем всю строку
+
+    std::stringstream ss(input);
+    std::string token;
+
+    while (std::getline(ss, token, ',')) { // Разбиваем по запятой
+        try {
+            int index = std::stoi(token);
+            indices.push_back(index);
+        }
+        catch (const std::exception&) {
+            std::cout << "Error! Invalid input: " << token << std::endl;
+            LOG_ERROR("Error! Invalid input"+ token);
+            return false;
+        }
+    }
+
+    return !indices.empty();
 }
 
 
@@ -142,13 +166,18 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
             
         }
         else if (command == "delete") {
-            int i;
-            if (!inputValidation(i)) { continue; };
+            std::vector<int> indices;
+            if (!parseIndices(indices)) { continue;}
             try {
-                if (commandManager.deleteShape(i))
-                    std::cout << "Delete shape " << i << ".\n";
-                else
-                    std::cout << "Delete shape error " << ".\n";
+                for (int index : indices) {
+                    if (commandManager.deleteShape(index))
+                        std::cout << "Delete shape " << index << ".\n";
+                    else{
+                        std::cout << "Delete shape error " << ".\n";
+                        LOG_ERROR("Failed to delete shape");
+                    }
+                        
+                }
             }
             catch (std::invalid_argument const& ex) {
                 std::cout << "Error: " << ex.what() << "\n";
@@ -523,6 +552,67 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
             catch (std::invalid_argument const& ex) {
                 std::cout << "Error: " << ex.what() << "\n";
                 LOG_ERROR("Failed to get inf " + std::string(ex.what()));
+            }
+        }
+        else if (command == "color") {
+            
+            double r, g, b, a;
+            if (!inputValidation(r, g, b, a)) { continue; };
+            std::cin >> command;
+            LOG_DEBUG("command = " + command);
+            if (command != "to") {
+                std::cout << "missed \"to\"" << endl;
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                continue;
+            }
+            std::vector<int> indices;
+            if (!parseIndices(indices)) { continue; }
+            try {
+                for (int index : indices) {
+                    commandManager.setColor(Color(r, g, b, a), index);
+                    std::cout << "color shape " << index << " to " << r << ", " << g << ", " << b << ", " << a << "\n";
+                    LOG_INFO("color shape " + to_string(index) + " to " + to_string(r) + ", "
+                        + to_string(g) + ", "
+                        + to_string(b) + ", "
+                        + to_string(a) + "\n");
+                }
+            }
+            catch (std::invalid_argument const& ex) {
+                std::cout << "Error: " << ex.what() << "\n";
+                LOG_ERROR("Failed to set shape shape" + std::string(ex.what()));
+            }
+            }
+        else if (command == "colorDef") {
+            double r, g, b, a;
+            if (!inputValidation(r, g, b, a)) { continue; };
+            try {
+                commandManager.setDefaultColor(Color(r, g, b, a));
+                std::cout << "default color = " << r << ", " << g << ", " << b << ", " << a << "\n";
+                LOG_INFO("default color = " + to_string(r) + ", "
+                    + to_string(g) + ", "
+                    + to_string(b) + ", "
+                    + to_string(a) + "\n");
+            }
+            catch (std::invalid_argument const& ex) {
+                std::cout << "Error: " << ex.what() << "\n";
+                LOG_ERROR("Failed to set default color" + std::string(ex.what()));
+            }
+        }
+        else if (command == "colorAll") {
+            double r, g, b, a;
+            if (!inputValidation(r, g, b, a)) { continue; };
+            try {
+                commandManager.setAllColor(Color(r, g, b, a));
+                std::cout << "All color = " << r << ", " << g << ", " << b << ", " << a << "\n";
+                LOG_INFO("Allt color = " + to_string(r) + ", "
+                    + to_string(g) + ", "
+                    + to_string(b) + ", "
+                    + to_string(a) + "\n");
+            }
+            catch (std::invalid_argument const& ex) {
+                std::cout << "Error: " << ex.what() << "\n";
+                LOG_ERROR("Failed to set All color" + std::string(ex.what()));
             }
         }
         else if (command == "exit") {
@@ -1098,8 +1188,10 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
 
 int main()
 {
+    //LOG_DEBUG выключен!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     LOG_IN_ONE_FILE(true);
-    LOG_IN_CONSOLE(true);
+    LOG_IN_CONSOLE(false);
     LOG_SET_FORMAT("[%L] %T - %M\n");
     LOG_INFO("____________________________START__________________________");
 

@@ -35,7 +35,7 @@ enum class LogLevel {
 #define LOG_ERROR(message) Logger::getInstance().log(LogLevel::ERRORR, message, __FILE__, __FUNCTION__, __LINE__)
 
 #ifdef _DEBUG
-#define LOG_DEBUG(message) Logger::getInstance().log(LogLevel::DEBUG, message, __FILE__, __FUNCTION__, __LINE__)
+#define LOG_DEBUG(message) //Logger::getInstance().log(LogLevel::DEBUG, message, __FILE__, __FUNCTION__, __LINE__)
 #else
 #define LOG_DEBUG(message)
 #endif

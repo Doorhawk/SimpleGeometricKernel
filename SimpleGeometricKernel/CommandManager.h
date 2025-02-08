@@ -10,6 +10,20 @@ class CommandManager
 public:
 	CommandManager(ShapeManager& shapeManager) :shapeManager(shapeManager) {}
 	
+	void setDefaultColor(Color newColor) {
+		shapeManager.setDefaultColor(newColor);
+	}
+	void setColor(Color newColor,int index){
+		auto shape = shapeManager.getBasicShape(index);
+		if (!shape) {
+			throw std::invalid_argument("Invalid indices in move command");
+		}
+		shape->setColor(newColor);
+	}
+	void setAllColor(Color newColor) {
+		shapeManager.setAllColor(newColor);
+	}
+
 	void addPoint(double x, double y) {
 		shapeManager.addBasicShape(Point(x, y));
 	}
@@ -210,7 +224,7 @@ public:
 		if (!shape) {
 			throw std::invalid_argument("Invalid indices " + to_string(shapeIndex));
 		}
-		shape->printInf();
+		std::cout<<shape->printInf();
 	}
 private:
 	std::shared_ptr<Point> getPoint(int index) {

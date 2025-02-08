@@ -6,8 +6,13 @@
 #include <string>
 #include <iostream>
 #include "enums.h"
+#include <array>
+#include <sstream>
+
 using namespace sf;
 using namespace std;
+
+
 
 class Point;
 class Line;
@@ -43,6 +48,7 @@ protected:
     bool isUpdating = false;
     ShapeType type;
     int index = 0;
+    Color color = Color::Black;
     void setType(const ShapeType newType);
 public:
     Depends(const ShapeType type);
@@ -51,11 +57,13 @@ public:
     void onDelete();
     void setDependsType(DependsTypes dp);
     void setIndex(int _index);
+    void setColor(Color color);
+    Color getColor();
     // Установка родителя с указанием типа зависимости
     void setParent(DependsTypes _type, const std::vector <std::weak_ptr<Depends>>& _parent);
     // Добавление ребёнка
     void addChild(const std::shared_ptr<Depends>& child);
-    void printFamilyInfo() const;
+    string printFamilyInfo() const;
     void removeExpiredChildren();
     // Уведомление ребёнка о том, что родитель удалён
     void onParentDeleted();
@@ -72,7 +80,7 @@ protected:
 public:
     BasicShape(const ShapeType type);
     virtual void draw(sf::RenderWindow& window, int num, sf::Font& font) const = 0; // Метод отрисовки virtual => у каждого потомка свой должен быть оперделен
-    virtual void printInf() const = 0; 
+    virtual std::string printInf() const = 0;
     virtual void move(double dx, double dy) = 0;
     virtual void rotate(const Point& center, double angle) = 0;
     virtual ~BasicShape() = default; // деструктор у каждого потомка свой по умолчанью
@@ -98,7 +106,7 @@ public:
     Point(const Point& other);
     Point(const Vector& other);
     void draw(sf::RenderWindow& window, int num, Font& font) const override;
-    void printInf() const override;
+    std::string printInf() const;
     void move(double dx, double dy) override;
     void rotate(const Point& center, double angle) override;
     Point& operator=(const Point& other);
@@ -126,7 +134,7 @@ protected:
 public:
     // Фабричный метод для создания объекта
     static std::shared_ptr<Line> create(std::shared_ptr<Point> p1, std::shared_ptr<Point> p2);
-    virtual void printInf() const override;
+    virtual std::string printInf() const override;
     void move(double dx, double dy) override;
     void rotate(const Point& center, double angle) override;
     Line& operator=(const Line& other);
@@ -149,7 +157,7 @@ protected:
     
 public:
     static std::shared_ptr<Circle> create(std::shared_ptr<Point> _center, std::shared_ptr<Point> _onCircle);
-    virtual void printInf() const override;
+    virtual std::string printInf() const override;
     void move(double dx, double dy) override;
     virtual void rotate(const Point& _center, double angle) override;
     Circle& operator=(const Circle& other);
