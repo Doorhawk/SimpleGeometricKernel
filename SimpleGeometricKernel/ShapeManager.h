@@ -5,115 +5,124 @@
 #include <mutex>
 #include <condition_variable>
 #include "WindowManager.h"
+#include "Logger.h"
+
+
+
 class ShapeManager {
 private:
     std::mutex shapesMutex;
     std::condition_variable cv;
     bool allDrowed = false;
     bool shapesModified = true;
-    std::unordered_map<int, std::shared_ptr<BasicShape>> shapes; // ’ранение фигур по их индексам
-    int nextIndex = 0; // »ндекс дл€ следующей фигуры
+    std::unordered_map<int, std::shared_ptr<BasicShape>> shapes;
+    int nextIndex = 0;
     friend class WindowManager;
+
 public:
     template <typename T, typename = std::enable_if_t<std::is_base_of_v<BasicShape, T>>>
     std::shared_ptr<BasicShape> addBasicShape(const T& shape) {
+        LOG_DEBUG("addBasicShape() - start");
         shapesModified = false;
         std::unique_lock<std::mutex> lock(shapesMutex);
-        cv.wait(lock, [this] { return allDrowed; }); // ∆дЄм завершени€ кадра
+        cv.wait(lock, [this] { return allDrowed; });
+
         auto ptr = std::make_shared<T>(shape);
         if (ptr) {
+            LOG_INFO("Shape added successfully, index = " + std::to_string(nextIndex));
             shapes[nextIndex] = ptr;
             shapes[nextIndex]->setIndex(nextIndex);
             shapesModified = true;
             cv.notify_all();
-            nextIndex++;
-            return shapes[nextIndex-1];
-            
+            return shapes[nextIndex++];
         }
         else {
-            std::cerr << "Error: Attempting to add an invalid shape.\n";
+            LOG_ERROR("Failed to add shape: nullptr created");
             shapesModified = true;
             cv.notify_all();
             return nullptr;
         }
     }
+
     template <typename T, typename = std::enable_if_t<std::is_base_of_v<BasicShape, T>>>
     std::shared_ptr<BasicShape> addBasicShape(std::shared_ptr<T> shape) {
+        LOG_DEBUG("addBasicShape(shared_ptr) - start");
         shapesModified = false;
         std::unique_lock<std::mutex> lock(shapesMutex);
-        cv.wait(lock, [this] { return allDrowed; }); // ∆дЄм завершени€ кадра
+        cv.wait(lock, [this] { return allDrowed; });
+
         if (shape) {
+            LOG_INFO("Shape added successfully, index = " + std::to_string(nextIndex));
             shapes[nextIndex] = shape;
             shapes[nextIndex]->setIndex(nextIndex);
             shapesModified = true;
             cv.notify_all();
-            nextIndex++;
-            return shapes[nextIndex - 1];
+            return shapes[nextIndex++];
         }
         else {
-            std::cerr << "Error: Attempting to add an invalid shape.\n";
+            LOG_ERROR("Failed to add shape: received nullptr");
             shapesModified = true;
             cv.notify_all();
             return nullptr;
         }
     }
+
     void removeAllBasicShape() {
+        LOG_INFO("Removing all shapes");
         shapesModified = false;
         std::unique_lock<std::mutex> lock(shapesMutex);
-        cv.wait(lock, [this] { return allDrowed; }); // ∆дЄм завершени€ кадра
+        cv.wait(lock, [this] { return allDrowed; });
 
         shapes.clear();
         nextIndex = 0;
         shapesModified = true;
         cv.notify_all();
     }
+
     bool removeBasicShape(size_t index) {
         shapesModified = false;
         std::unique_lock<std::mutex> lock(shapesMutex);
-        cv.wait(lock, [this] { return allDrowed; }); // ∆дЄм завершени€ кадра
+        cv.wait(lock, [this] { return allDrowed; });
 
+        LOG_DEBUG("Attempting to remove shape with index = " + std::to_string(index));
         try {
+            auto shape = getBasicShape(index);
+            shape->onDelete();
             shapes.erase(index);
+            LOG_INFO("Shape removed successfully, index = " + std::to_string(index));
         }
-        catch(...){
-            cout << "index out of range\n";
+        catch (...) {
+            LOG_WARNING("Failed to remove shape: index " + std::to_string(index) + " out of range");
             shapesModified = true;
             cv.notify_all();
             return false;
         }
 
-        /*if (shapes.erase(index) == 0) {
-            cout << "index out of range\n";
-            shapesModified = true;
-            cv.notify_all();
-            return false;
-        }*/
         shapesModified = true;
         cv.notify_all();
         return true;
     }
 
-    void drawAll(sf::RenderWindow& window,Font font) {
+    void drawAll(sf::RenderWindow& window, Font font) {
         std::unique_lock<std::mutex> lock(shapesMutex);
         cv.wait(lock, [this] { return shapesModified; });
+
         allDrowed = false;
         for (const auto& [index, shape] : shapes) {
-            if (!shape->getValid())
-                continue;
+            if (!shape->getValid()) continue;
             try {
                 if (shape) {
                     shape->draw(window, index, font);
-                    //cout << "drowed"<<index<<endl;
                 }
                 else {
-                    std::cerr << "Warning: Encountered a nullptr in BasicShapes. Skipping.\n";
+                    LOG_WARNING("Encountered a nullptr in BasicShapes. Skipping.");
                 }
             }
             catch (const std::exception& e) {
-                std::cerr << "Exception during draw: " << e.what() << ". Skipping this shape.\n";
+                LOG_ERROR("Exception during draw: " + std::string(e.what()) + ". Skipping.");
             }
             catch (...) {
-                std::cerr << "Unknown exception during draw. Skipping this shape.\n";
+                LOG_ERROR("Unknown exception during draw. Skipping.");
             }
         }
         allDrowed = true;
@@ -121,8 +130,15 @@ public:
     }
 
     std::shared_ptr<BasicShape> getBasicShape(int index) const {
+        LOG_DEBUG("Get shape, index = " + std::to_string(index));
         auto it = shapes.find(index);
-        return (it != shapes.end()&&it->second->getValid()) ? it->second : nullptr;
+        if (it != shapes.end() && it->second->getValid()) {
+            LOG_DEBUG("Shape found, index = " + std::to_string(index));
+            return it->second;
+        }
+        else {
+            LOG_WARNING("Shape not found, index = " + std::to_string(index) + " out of range");
+            throw std::invalid_argument("Out of range");
+        }
     }
-    
 };

@@ -41,13 +41,14 @@ protected:
     std::vector <std::weak_ptr<Depends>> parent;
     DependsTypes dependsType = DependsTypes::None;
     bool isUpdating = false;
-    string type;
+    ShapeType type;
     int index = 0;
-    void setType(const string& newType);
+    void setType(const ShapeType newType);
 public:
-    Depends(const std::string& type);
-    string getType() const;
+    Depends(const ShapeType type);
+    ShapeType getType() const;
     virtual ~Depends();
+    void onDelete();
     void setDependsType(DependsTypes dp);
     void setIndex(int _index);
     // Установка родителя с указанием типа зависимости
@@ -69,7 +70,7 @@ private:
     bool valid;
 protected:
 public:
-    BasicShape(const std::string& type);
+    BasicShape(const ShapeType type);
     virtual void draw(sf::RenderWindow& window, int num, sf::Font& font) const = 0; // Метод отрисовки virtual => у каждого потомка свой должен быть оперделен
     virtual void printInf() const = 0; 
     virtual void move(double dx, double dy) = 0;
@@ -136,6 +137,32 @@ public:
     void init() override;
 };
 
+
+class Circle : public virtual BasicShape {
+private:
+    std::shared_ptr<Point> center;
+    std::shared_ptr<Point> onCircle;
+    double radius = 0;
+    friend class go;
+    Circle(std::shared_ptr<Point> center, std::shared_ptr<Point> onCircle);
+protected:
+    
+public:
+    static std::shared_ptr<Circle> create(std::shared_ptr<Point> _center, std::shared_ptr<Point> _onCircle);
+    virtual void printInf() const override;
+    void move(double dx, double dy) override;
+    virtual void rotate(const Point& _center, double angle) override;
+    Circle& operator=(const Circle& other);
+    virtual void draw(sf::RenderWindow& window, int num, sf::Font& font) const override;
+    std::shared_ptr<Point> getCenter() const;
+    std::shared_ptr<Point> getOnCircle() const;
+    double getRadius() const;
+    void update() override;
+    void init() override;
+    
+};
+
+
 //class Segment : public Line {
 //private:
 //    friend class go;
@@ -182,70 +209,7 @@ public:
 //    
 //};
 //
-//class Circle : public virtual BasicShape{
-//private:
-//    Point cen;
-//    double rad;
-//    friend class go;
-//protected:
-//    void setCenter(const Point& newCenter) {
-//        cen = newCenter;
-//    }
-//    void setRadius(double newRadius) {
-//        rad = newRadius;
-//    }
-//public:
-//    Circle() : BasicShape("circle"),cen({ 0,0 }), rad(1) {}
-//    Circle(Point cen, double rad) :BasicShape("circle"),cen(cen), rad(rad)  {}
-//    Circle(Point _cen, Point _point):BasicShape("circle") {
-//        cen = _cen;
-//        rad = Vector(cen - _point).abs();
-//    }
-//    Circle(const Circle& other) :cen(other.cen), rad(other.rad) {}
-//    virtual void printInf() const override {
-//        cout << "circle: center (" << cen.x << ", " << cen.y << "), radius = "<<rad <<  endl;
-//   
-//    }
-//    void move(double dx, double dy) override {
-//        cen.move(dx, dy);
-//    }
-//    virtual void rotate(const Point& center, double angle) override {
-//        cen.rotate(center, angle);
-//    }
-//    Circle& operator=(const Circle& other) {
-//        if (this != &other) {
-//            cen = other.cen;
-//            rad = other.rad;
-//        }
-//        return *this;
-//    }
-//    virtual void draw(sf::RenderWindow& window, int num, sf::Font& font) const override {
-//        
-//        sf::CircleShape shape(rad); // Радиус круга
-//        int pointAtCircle = std::min(100, std::max(20, static_cast<int>(20 / global::size))); // min 20 -> max 100
-//        shape.setPointCount(pointAtCircle); // точек на круг
-//        shape.setPosition(cen.x-rad,cen.y-rad); // Устанавливаем позицию круга
-//        shape.setFillColor(sf::Color::Transparent); // Убираем заливку
-//        shape.setOutlineThickness(1.f*global::size); // Устанавливаем толщину контура
-//        shape.setOutlineColor(sf::Color::Black); // Устанавливаем цвет контура
-//        window.draw(shape);
 //
-//        Text text;
-//        text.setFont(font);
-//        text.setScale(1 * global::size, -1 * global::size);
-//        text.setPosition(cen.x - rad, cen.y -rad);
-//        text.setString("c" + std::to_string(num));
-//        text.setCharacterSize(15);
-//        text.setFillColor(Color::Black);
-//        window.draw(text);
-//    }
-//    Point getCenter() const {
-//        return cen;
-//    }
-//    double getRadius() const {
-//        return rad;
-//    }
-//};
 //
 //class Sector : public Circle {
 //private:

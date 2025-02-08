@@ -88,6 +88,14 @@ double go::distance(std::shared_ptr<Line> line, const Point& point) {
 double go::distance(const Point& point, std::shared_ptr<Line> line) {
 	return go::distance(line, point);
 }
+double go::distance(std::shared_ptr<Circle> circle, const Point& point) {
+
+	double distCentPoint = go::distance(point, *circle->center);
+	return  abs(distCentPoint - circle->radius);
+}
+double go::distance(const Point& point, std::shared_ptr<Circle> circle) {
+	return go::distance(circle, point);
+}
 //
 //Line go::getParallel(const Line& line, const  Point& point) {
 //	

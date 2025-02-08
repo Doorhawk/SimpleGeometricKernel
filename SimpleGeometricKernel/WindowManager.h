@@ -3,6 +3,8 @@
 #include "ShapeManager.h"
 #include "global.h"
 #include "enums.h"
+#include "Logger.h"
+#include <iostream>
 using namespace sf;
 
 
@@ -19,18 +21,24 @@ private:
     Point startPose;
     int wHeight;
     int wWidth;
+    std::atomic<bool>& isRunning;
 
     void controls(Event event) {
 
         if (event.type == Event::Closed) {
+            isRunning = false;
+            LOG_INFO("window is close");
             window.close();
         }
         if (event.type == sf::Event::KeyPressed) {
             if (event.key.code == sf::Keyboard::M) {
                 mode = wMode::figureMove;
+                LOG_INFO("figureMove mod ON in window");
+
             }
             else if (event.key.code == sf::Keyboard::C) {
                 mode = wMode::cameraMove;
+                LOG_INFO("cameraMove mod ON in window");
             }
         }
         if(mode == wMode::cameraMove){
@@ -45,17 +53,19 @@ private:
         }
         else if(mode == wMode::figureMove) {
             if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+                LOG_DEBUG("LBM Clicked");
                 sf::Vector2f mousePos = getMouseWorldPosition();
                 double minDistance = std::numeric_limits<double>::max();
                 std::shared_ptr<BasicShape> PointMin = nullptr;
                 // Ищем ближайшую фигуру к месту клика
                 float threshold = view.getSize().x * 0.02f;
                 for (const auto& [index, shape] : shapeManager.shapes) {
-                    if (shape && shape->getType() == "point") { // Проверяем только точки
+                    if (shape && shape->getType() == st_point) { // Проверяем только точки
                         double distance = getDistance(shape, mousePos.x, mousePos.y);
                         if (distance < minDistance && distance < threshold) {
                             selectedShape = shape;
                             minDistance = distance;
+                            LOG_DEBUG("found the point you clicked on, index = "+to_string(index));
                         }
                     }
                 }
@@ -69,6 +79,7 @@ private:
                             if (distance < minDistance && distance < threshold) {
                                 selectedShape = shape;
                                 minDistance = distance;
+                                LOG_DEBUG("found the shape you clicked on, index = " + to_string(index));
                             }
                         }
                     }
@@ -76,6 +87,7 @@ private:
 
                 // Если нашли фигуру, сохраняем её начальную позицию
                 if (selectedShape) {
+                    LOG_DEBUG(std::format("starting position = ({}, {})", mousePos.x, mousePos.y));
                     startPose = Point(mousePos.x, mousePos.y);
                     isDragging = true;
                 }
@@ -83,6 +95,7 @@ private:
 
             // Отпускание кнопки мыши
             if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left) {
+                LOG_DEBUG("LBM Released");
                 isDragging = false; // Останавливаем перемещение
                 selectedShape = nullptr;
             }
@@ -97,15 +110,21 @@ private:
 
     }
     double getDistance(std::shared_ptr<BasicShape> shape,float x, float y) {
-        if (shape->getType() == "point") {
+        if (shape->getType() == st_point) {
             auto point = dynamic_pointer_cast<Point>(shape);
             if (point) {
                 return go::distance(*point, Point(x, y))/1.2;
             }
-        }else if (shape->getType() == "line") {
+        } else if (shape->getType() == st_line) {
             auto line = dynamic_pointer_cast<Line>(shape);
             if (line) {
                 return go::distance(line, Point(x, y));
+            }
+        }
+        else if (shape->getType() == st_circle) {
+            auto circle = dynamic_pointer_cast<Circle>(shape);
+            if (circle) {
+                return go::distance(circle, Point(x, y));
             }
         }
         return 10000;
@@ -178,7 +197,7 @@ private:
         window.setView(view);
     }
 public:
-    WindowManager(ShapeManager& shapeManager) : shapeManager(shapeManager),startPose(0,0) {
+    WindowManager(ShapeManager& shapeManager, std::atomic<bool>& isRunning) : shapeManager(shapeManager),isRunning(isRunning), startPose(0,0) {
         wHeight = 800;
         wWidth = 800;
         window.create(VideoMode(800, 800), "Scene");
@@ -188,14 +207,19 @@ public:
         global::size *= 0.1;
         view.zoom(0.1);
         isDragging = false;
+        LOG_INFO("window is open");
         if (!font.loadFromFile("arialmt.ttf")) {
             std::cout << "font errror";
+            LOG_ERROR("Failed to load font");
         }
     }
 
     void show() {
         while (window.isOpen()) {
             
+            if (!isRunning)
+                window.close();
+
             Event event;
             while (window.pollEvent(event)) {
                 controls(event);
