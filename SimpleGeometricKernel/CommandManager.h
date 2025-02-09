@@ -52,9 +52,31 @@ public:
 			throw std::invalid_argument("Error in creation point for circle ");
 	}
 	void addCircle(int index1, int index2) {
-		auto center = getPoint(index1);
-		auto onCircle = getPoint(index2);
-		shapeManager.addBasicShape(Circle::create(center, onCircle));
+		auto center1 = getPoint(index1);
+		auto onCircle1 = getPoint(index2);
+
+		auto center = std::make_shared<Point>(Point(0, 0));
+		auto onCircle = std::make_shared<Point>(Point(10, 10));
+		auto circle2points = shapeManager.addBasicShape(Circle::create(center, onCircle));
+		std::vector <std::weak_ptr<Depends>> parents = { center1,onCircle1};
+		circle2points->setParent(DependsTypes::Circle2points, parents);
+		circle2points->addChild(center1);
+		circle2points->addChild(onCircle1);
+	}
+	void addCircle3points(int index1, int index2, int index3) {
+		auto point1 = getPoint(index1);
+		auto point2 = getPoint(index2);
+		auto point3 = getPoint(index3);
+
+		auto center = std::make_shared<Point>(Point(0, 0));
+		auto onCircle = std::make_shared<Point>(Point(10, 10));
+
+		auto circle3points = shapeManager.addBasicShape(Circle::create(center, onCircle));
+		std::vector <std::weak_ptr<Depends>> parents = { point1,point2,point3 };
+		circle3points->setParent(DependsTypes::Circle3points, parents);
+		circle3points->addChild(point1);
+		circle3points->addChild(point2);
+		circle3points->addChild(point3);
 	}
 
 	bool deleteShape(int index) {
@@ -155,12 +177,13 @@ public:
 
 	void addBisectrix(int index1, int index2, int index3) {
 		auto point1 = getPoint(index1);
-		auto linePoint2 = getPoint(index2);
+		auto point2 = getPoint(index2);
 		auto point3 = getPoint(index3);
 
 		auto linePoint = std::make_shared<Point>(Point(0, 0));
+		auto linePoint2 = std::make_shared<Point>(Point(10, 10));
 		auto bisectrix = shapeManager.addBasicShape(Line::create(linePoint2, linePoint));
-		std::vector <std::weak_ptr<Depends>> parents = { point1,point3};
+		std::vector <std::weak_ptr<Depends>> parents = { point1,point2,point3};
 		bisectrix->setParent(DependsTypes::Bisectrix, parents);
 
 	}
@@ -203,6 +226,8 @@ public:
 			throw std::invalid_argument("addPointBelong not for this shape type");
 		}
 	}
+
+	
 
 	void intersection(ShapeType type1, int index1, ShapeType type2, int index2) {
 		if (type1 == st_line&& type2 == st_line) {

@@ -22,14 +22,14 @@ private:
 public:
     template <typename T, typename = std::enable_if_t<std::is_base_of_v<BasicShape, T>>>
     std::shared_ptr<BasicShape> addBasicShape(const T& shape) {
-        LOG_DEBUG("addBasicShape() - start");
+        LOG_G_DEBUG("addBasicShape() - start");
         shapesModified = false;
         std::unique_lock<std::mutex> lock(shapesMutex);
         cv.wait(lock, [this] { return allDrowed; });
 
         auto ptr = std::make_shared<T>(shape);
         if (ptr) {
-            LOG_INFO("Shape added successfully, index = " + std::to_string(nextIndex));
+            LOG_G_INFO("Shape added successfully, index = " + std::to_string(nextIndex));
             shapes[nextIndex] = ptr;
             shapes[nextIndex]->setIndex(nextIndex);
             shapes[nextIndex]->setColor(defaultColor);
@@ -38,7 +38,7 @@ public:
             return shapes[nextIndex++];
         }
         else {
-            LOG_ERROR("Failed to add shape: nullptr created");
+            LOG_G_ERROR("Failed to add shape: nullptr created");
             shapesModified = true;
             cv.notify_all();
             return nullptr;
@@ -47,13 +47,13 @@ public:
 
     template <typename T, typename = std::enable_if_t<std::is_base_of_v<BasicShape, T>>>
     std::shared_ptr<BasicShape> addBasicShape(std::shared_ptr<T> shape) {
-        LOG_DEBUG("addBasicShape(shared_ptr) - start");
+        LOG_G_DEBUG("addBasicShape(shared_ptr) - start");
         shapesModified = false;
         std::unique_lock<std::mutex> lock(shapesMutex);
         cv.wait(lock, [this] { return allDrowed; });
 
         if (shape) {
-            LOG_INFO("Shape added successfully, index = " + std::to_string(nextIndex));
+            LOG_G_INFO("Shape added successfully, index = " + std::to_string(nextIndex));
             shapes[nextIndex] = shape;
             shapes[nextIndex]->setIndex(nextIndex);
             shapes[nextIndex]->setColor(defaultColor);
@@ -62,7 +62,7 @@ public:
             return shapes[nextIndex++];
         }
         else {
-            LOG_ERROR("Failed to add shape: received nullptr");
+            LOG_G_ERROR("Failed to add shape: received nullptr");
             shapesModified = true;
             cv.notify_all();
             return nullptr;
@@ -70,7 +70,7 @@ public:
     }
 
     void removeAllBasicShape() {
-        LOG_INFO("Removing all shapes");
+        LOG_G_INFO("Removing all shapes");
         shapesModified = false;
         std::unique_lock<std::mutex> lock(shapesMutex);
         cv.wait(lock, [this] { return allDrowed; });
@@ -86,15 +86,15 @@ public:
         std::unique_lock<std::mutex> lock(shapesMutex);
         cv.wait(lock, [this] { return allDrowed; });
 
-        LOG_DEBUG("Attempting to remove shape with index = " + std::to_string(index));
+        LOG_G_DEBUG("Attempting to remove shape with index = " + std::to_string(index));
         try {
             auto shape = getBasicShape(index);
             shape->onDelete();
             shapes.erase(index);
-            LOG_INFO("Shape removed successfully, index = " + std::to_string(index));
+            LOG_G_INFO("Shape removed successfully, index = " + std::to_string(index));
         }
         catch (...) {
-            LOG_WARNING("Failed to remove shape: index " + std::to_string(index) + " out of range");
+            LOG_G_WARNING("Failed to remove shape: index " + std::to_string(index) + " out of range");
             shapesModified = true;
             cv.notify_all();
             return false;
@@ -117,14 +117,14 @@ public:
                     shape->draw(window, index, font);
                 }
                 else {
-                    LOG_WARNING("Encountered a nullptr in BasicShapes. Skipping.");
+                    LOG_G_WARNING("Encountered a nullptr in BasicShapes. Skipping.");
                 }
             }
             catch (const std::exception& e) {
-                LOG_ERROR("Exception during draw: " + std::string(e.what()) + ". Skipping.");
+                LOG_G_ERROR("Exception during draw: " + std::string(e.what()) + ". Skipping.");
             }
             catch (...) {
-                LOG_ERROR("Unknown exception during draw. Skipping.");
+                LOG_G_ERROR("Unknown exception during draw. Skipping.");
             }
         }
         allDrowed = true;
@@ -132,14 +132,14 @@ public:
     }
 
     std::shared_ptr<BasicShape> getBasicShape(int index) const {
-        LOG_DEBUG("Get shape, index = " + std::to_string(index));
+        LOG_G_DEBUG("Get shape, index = " + std::to_string(index));
         auto it = shapes.find(index);
         if (it != shapes.end() && it->second->getValid()) {
-            LOG_DEBUG("Shape found, index = " + std::to_string(index));
+            LOG_G_DEBUG("Shape found, index = " + std::to_string(index));
             return it->second;
         }
         else {
-            LOG_WARNING("Shape not found, index = " + std::to_string(index) + " out of range");
+            LOG_G_WARNING("Shape not found, index = " + std::to_string(index) + " out of range");
             throw std::invalid_argument("Out of range");
         }
     }
@@ -155,11 +155,11 @@ public:
                     shape->setColor(color);
                 }
                 else {
-                    LOG_WARNING("cant set new color");
+                    LOG_G_WARNING("cant set new color");
                 }
             }
             catch (...) {
-                LOG_ERROR("Unknown exception during set color. Skipping.");
+                LOG_G_ERROR("Unknown exception during set color. Skipping.");
             }
         }
     }

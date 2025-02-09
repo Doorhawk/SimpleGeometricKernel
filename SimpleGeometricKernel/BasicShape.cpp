@@ -188,18 +188,43 @@ DependsTypes Depends::getDependsType() { return dependsType; }
 Color Depends::getColor() {
     return color;
 }
-
-BasicShape::BasicShape(const ShapeType type) :Depends(type), valid(true) {}
-void BasicShape::setInvalid() {
+void Depends::setInvalid() {
     valid = false;
+    for (auto& weakChild : children) {
+        if (auto childPtr = weakChild.lock()) {
+            childPtr->setInvalid();
+        }
+    }
 }
-void BasicShape::setValid() {
+void Depends::setValid() {
     valid = true;
+    for (auto& weakChild : children) {
+        if (auto childPtr = weakChild.lock()) {
+            childPtr->setValid();
+        }
+    }
 }
-bool BasicShape::getValid() {
+bool Depends::getValid() {
     return valid;
 }
 
+
+BasicShape::BasicShape(const ShapeType type) :Depends(type) {}
+void BasicShape::moveChildren(double dx, double dy) {
+    for (auto& weakChild : children) {
+        if (auto childPtr = weakChild.lock()) {
+            if (childPtr->getDependsType() != DependsTypes::None) {
+                return;
+            }
+        }
+    }
+    for (auto& weakChild : children) {
+        if (auto childPtr = weakChild.lock()) {
+            dynamic_pointer_cast<BasicShape>(childPtr)->move(dx, dy);
+        }
+    }
+
+}
 
 
 
@@ -334,6 +359,12 @@ void Point::update() {
         if (!inter.empty()) {
             x = inter[0].x;
             y = inter[0].y;
+            if (!valid) {
+                setValid();
+            }
+        }
+        else {
+            setInvalid();
         }
     }
     else {
@@ -496,6 +527,14 @@ void Line::draw(sf::RenderWindow& window, int num, sf::Font& font) const {
     window.draw(text);
 
 }
+void Line::toMedianPerpendicular(const Point& point1, const Point& point2) {
+    Point midle = go::findMiddle(point1, point2);
+    *p1 = midle;
+    Vector vec = point1 - point2;
+    vec = { -(vec.y),vec.x };
+    vec = vec.normalize() * 10;
+    (*p2) = *p1 + vec;
+}
 void Line::update() {
 
     if (dependsType == DependsTypes::None) {
@@ -535,29 +574,26 @@ void Line::update() {
         auto point1 = std::dynamic_pointer_cast<Point>(parent[0].lock());
         auto point2 = std::dynamic_pointer_cast<Point>(parent[1].lock());
 
-        Point midle = go::findMiddle(*point1, *point2);
+        toMedianPerpendicular(*point1, *point2);
 
-        *p1 = midle;
-        Vector vec = *point1 - *point2;
-        vec = { -(vec.y),vec.x };
-        vec = vec.normalize() * 10;
-        (*p2) = *p1 + vec;
     }
     else if (dependsType == DependsTypes::Bisectrix) {
         if (parent.empty())
             throw std::invalid_argument("update line with Bisectrix - error: parent.empty() == true");
-        if (parent.size() != 2)
-            throw std::invalid_argument("update line with Bisectrix - error: parent.size() != 2");
+        if (parent.size() != 3)
+            throw std::invalid_argument("update line with Bisectrix - error: parent.size() != 3");
         auto point1 = std::dynamic_pointer_cast<Point>(parent[0].lock());
         auto point2 = std::dynamic_pointer_cast<Point>(parent[1].lock());
+        auto point3 = std::dynamic_pointer_cast<Point>(parent[2].lock());
 
-        Vector vec1 = (*point1 - *p1);
-        Vector vec2 = (*point2 - *p1);
+        Vector vec1 = (*point1 - *point2);
+        Vector vec2 = (*point3 - *point2);
         
         vec1 = vec1.normalize();
         vec2 = vec2.normalize();
 
-        *p2 = *p1 + (vec1 + vec2) * 10;
+        *p1 = *point2 - (vec1 + vec2) * 10;
+        *p2 = *point2 + (vec1 + vec2) * 10;
     }
     else {
 
@@ -570,6 +606,43 @@ void Line::init() {
 
 }
 
+
+
+
+LineSimple::LineSimple(Point p1, Point p2): p1(p1), p2(p2) {}
+LineSimple::LineSimple() : p1(Point(0,0)), p2(Point(1,1)) {}
+double LineSimple::fun(double x) const {
+    return 0;
+}
+void LineSimple::move(double dx, double dy) {
+        p1.move(dx, dy);
+        p2.move(dx, dy);
+}
+void LineSimple::rotate(const Point& center, double angle) {
+     p1.rotate(center, angle);
+     p2.rotate(center, angle);
+}
+LineSimple& LineSimple::operator=(const LineSimple& other) {
+    if (this != &other) {
+        p1 = other.p1;
+        p2 = other.p2;
+    }
+    return *this;
+}
+Point LineSimple::getStart() const {
+    return p1;
+}
+Point LineSimple::getEnd() const {
+    return p2;
+}
+void LineSimple::toMedianPerpendicular(const Point& point1, const Point& point2) {
+    Point midle = go::findMiddle(point1, point2);
+    p1 = midle;
+    Vector vec = point1 - point2;
+    vec = { -(vec.y),vec.x };
+    vec = vec.normalize() * 10;
+    p2 = p1 + vec;
+}
 
 
 
@@ -593,16 +666,17 @@ void Circle::move(double dx, double dy)  {
     isUpdating = true;
     center->move(dx, dy);
     onCircle->move(dx, dy);
-    isUpdating = false;
     notifyChildren();
+    moveChildren(dx,dy);
+    isUpdating = false;
 }
 void Circle::rotate(const Point& _center, double angle) {
     
     isUpdating = true;
     center->rotate(_center, angle);
     onCircle->rotate(_center, angle);
-    isUpdating = false;
     notifyChildren();
+    isUpdating = false;
 }
 Circle& Circle::operator=(const Circle& other) {
     if (this != &other) {
@@ -643,6 +717,53 @@ double Circle::getRadius() const {
 }
 void Circle::update() {
     if (dependsType == DependsTypes::None) {
+        radius = go::distance(*center, *onCircle);
+    }
+    else if (dependsType == DependsTypes::Circle3points) {
+        if (parent.empty())
+            throw std::invalid_argument("update circle with Circle3points - error: parent.empty() == true");
+        if (parent.size() != 3)
+            throw std::invalid_argument("update circle with Circle3points - error: parent.size() != 3");
+
+        auto point1 = std::dynamic_pointer_cast<Point>(parent[0].lock());
+        auto point2 = std::dynamic_pointer_cast<Point>(parent[1].lock());
+        auto point3 = std::dynamic_pointer_cast<Point>(parent[2].lock());
+
+        LineSimple line1;
+        LineSimple line2;
+
+        line1.toMedianPerpendicular(*point1, *point2);
+        line2.toMedianPerpendicular(*point2, *point3);
+
+        std::vector<Point> inter = go::findIntersection(line1, line2);
+
+        if (!inter.empty()) {
+            
+            *center = inter[0];
+            *onCircle = *point2;
+            radius = go::distance(*center, *onCircle);
+
+            if (!valid) {
+                setValid();
+            }
+        }
+        else {
+            setInvalid();
+        }
+
+    }
+    else if (dependsType == DependsTypes::Circle2points) {
+        if (parent.empty())
+            throw std::invalid_argument("update circle with Circle2points - error: parent.empty() == true");
+        if (parent.size() != 2)
+            throw std::invalid_argument("update circle with Circle2points - error: parent.size() != 2");
+
+        auto point1 = std::dynamic_pointer_cast<Point>(parent[0].lock());
+        auto point2 = std::dynamic_pointer_cast<Point>(parent[1].lock());
+
+        *center = *point1;
+        *onCircle = *point2;
+
         radius = go::distance(*center, *onCircle);
     }
 }

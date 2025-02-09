@@ -23,6 +23,7 @@ private:
     friend class go;
     friend class Point;
     friend class Line;
+    friend class LineSimple;
 public:
     double abs() const;
     Vector normalize() const;
@@ -49,6 +50,7 @@ protected:
     ShapeType type;
     int index = 0;
     Color color = Color::Black;
+    bool valid = true;
     void setType(const ShapeType newType);
 public:
     Depends(const ShapeType type);
@@ -72,10 +74,15 @@ public:
     DependsTypes getDependsType();
     virtual void update() = 0;
     virtual void init() = 0;
+    void setInvalid();
+    void setValid();
+    bool getValid();
+   
+    
 };
 class BasicShape : public Depends {
 private:
-    bool valid;
+    
 protected:
 public:
     BasicShape(const ShapeType type);
@@ -84,9 +91,7 @@ public:
     virtual void move(double dx, double dy) = 0;
     virtual void rotate(const Point& center, double angle) = 0;
     virtual ~BasicShape() = default; // деструктор у каждого потомка свой по умолчанью
-    void setInvalid();
-    void setValid();
-    bool getValid();
+    void moveChildren(double dx, double dy);
 };
 
 class Point : public BasicShape {
@@ -94,6 +99,7 @@ private:
     double x, y;
     friend class go;
     friend class Line;
+    friend class LineSimple;
     friend class Segment;
     friend class Circle;
     friend class Sector;
@@ -143,6 +149,25 @@ public:
     virtual void draw(sf::RenderWindow& window, int num, sf::Font& font) const override;
     void update() override;
     void init() override;
+    void toMedianPerpendicular(const Point& p1, const Point& p2);
+};
+
+
+class LineSimple {
+protected:
+    Point p1, p2;
+    friend class go;
+    friend class Point;
+    double fun(double x) const;
+public:
+    LineSimple(Point p1, Point p2);
+    LineSimple();
+    void move(double dx, double dy);
+    void rotate(const Point& center, double angle);
+    LineSimple& operator=(const LineSimple& other);
+    Point getStart() const;
+    Point getEnd() const;
+    void toMedianPerpendicular(const Point& p1, const Point& p2);
 };
 
 

@@ -10,7 +10,9 @@ enum class DependsTypes {
     MedianPerpendicular,
     Bisectrix,
     BelongsToLine,
-    IntersectionLineLine
+    IntersectionLineLine,
+    Circle3points,
+    Circle2points // center and onCircle
 };
 
 

@@ -15,13 +15,17 @@ template <typename... Args>
 // проверяет корректность ввода чисел
 bool inputValidation(Args&... args) {
     (std::cin >> ... >> args);  
+    std::ostringstream oss;
+    ((oss << args << " "), ...);  // Конкатенация всех аргументов через пробел
     if (std::cin.fail()) {
         std::cout << "Error! invalid input,enter numbers" << std::endl;
-        LOG_ERROR("Invalid input, enter numbers");
+        LOG_G_ERROR("Invalid input, enter numbers");
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        LOG_INFO("command", "error");
         return false;
     }
+    LOG_INFO("command", oss.str());
     return true;
 }
 // читает строку и разбивает ее на массив индексов, проверяет на кооректность ввод
@@ -29,6 +33,8 @@ bool inputValidation(Args&... args) {
 bool parseIndices(std::vector<int>& indices) {
     std::string input;
     std::getline(std::cin, input); // Читаем всю строку
+
+   
 
     std::stringstream ss(input);
     std::string token;
@@ -40,11 +46,12 @@ bool parseIndices(std::vector<int>& indices) {
         }
         catch (const std::exception&) {
             std::cout << "Error! Invalid input: " << token << std::endl;
-            LOG_ERROR("Error! Invalid input"+ token);
+            LOG_G_ERROR("Error! Invalid input"+ token);
+            LOG_INFO("command", "error");
             return false;
         }
     }
-
+    LOG_INFO("command", input);
     return !indices.empty();
 }
 
@@ -64,30 +71,31 @@ const double PI = acos(-1);
 void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunning) {
     std::string command;
     while (isRunning) {
-        
+        LOG_INFO("command", "\n");
         std::cout << "-> ";
         std::cin >> command;
-        LOG_DEBUG("command = "+command);
+        LOG_INFO("command", command);
         if (command == "add") {
             std::cin >> command;
-            LOG_DEBUG("command = " + command);
+            LOG_INFO("command",command);
             if (command == "point") {
                 float x, y;
                 if (!inputValidation(x, y)) { continue; };
                 try {
+                    
                     commandManager.addPoint(x, y);
                     std::cout << std::format("Point created ({}, {})\n", x, y);
-                    LOG_INFO("Point created at (" + std::to_string(x) + ", " + std::to_string(y) + ")");
+                    LOG_G_INFO("Point created at (" + std::to_string(x) + ", " + std::to_string(y) + ")");
                 }
                 catch (std::invalid_argument const& ex) {
                     std::cout << "Error: " << ex.what() << "\n";
-                    LOG_ERROR("Failed to add point: " + std::string(ex.what()));
+                    LOG_G_ERROR("Failed to add point: " + std::string(ex.what()));
                 }
                 
             }
             else if (command == "line") {
                 cin >> command;
-                LOG_DEBUG("command = " + command);
+                LOG_INFO("command",command);
                 if (command == "p") {
                     int i, j;
                     if (!inputValidation(i, j)) { continue; };
@@ -95,11 +103,11 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
                     try {
                         commandManager.addLine(i, j);
                         std::cout << "Line created between points " << i << " and " << j << ".\n";
-                        LOG_INFO("Line created between points " + std::to_string(i) + " and " + std::to_string(j));
+                        LOG_G_INFO("Line created between points " + std::to_string(i) + " and " + std::to_string(j));
                     }
                     catch (std::invalid_argument const& ex) {
                         std::cout << "Error: " << ex.what() << "\n";
-                        LOG_ERROR("Failed to create line between points " + std::to_string(i) + " and " + std::to_string(j) + ": " + std::string(ex.what()));
+                        LOG_G_ERROR("Failed to create line between points " + std::to_string(i) + " and " + std::to_string(j) + ": " + std::string(ex.what()));
                     }
                 }
                 else if (command == "c") {
@@ -108,22 +116,22 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
                     try {
                         commandManager.addLine(x, y, x1, y1);
                         std::cout << std::format("Line created between coords {}, {} and {}, {}\n", x, y, x1, y1);
-                        LOG_INFO("Line created between coordinates (" + std::to_string(x) + ", " + std::to_string(y) + ") and (" + std::to_string(x1) + ", " + std::to_string(y1) + ")");
+                        LOG_G_INFO("Line created between coordinates (" + std::to_string(x) + ", " + std::to_string(y) + ") and (" + std::to_string(x1) + ", " + std::to_string(y1) + ")");
                     }
                     catch (std::invalid_argument const& ex) {
                         std::cout << "Error: " << ex.what() << "\n";
-                        LOG_ERROR("Failed to create line between coordinates (" + std::to_string(x) + ", " + std::to_string(y) + ") and (" + std::to_string(x1) + ", " + std::to_string(y1) + "): " + std::string(ex.what()));
+                        LOG_G_ERROR("Failed to create line between coordinates (" + std::to_string(x) + ", " + std::to_string(y) + ") and (" + std::to_string(x1) + ", " + std::to_string(y1) + "): " + std::string(ex.what()));
                     }
                 }
                 else {
                     std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
-                    LOG_WARNING("Invalid command = {"+command+"}. Expected 'c' or 'p'. ");
+                    LOG_G_WARNING("Invalid command = {"+command+"}. Expected 'c' or 'p'. ");
                     continue;
                 }
             }
             else if (command == "circle") {
                 cin >> command;
-                LOG_DEBUG("command = " + command);
+                LOG_INFO("command",command);
                 if (command == "p") {
                     int i, j;
                     if (!inputValidation(i, j)) { continue; };
@@ -131,11 +139,11 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
                     try {
                         commandManager.addCircle(i, j);
                         std::cout << "Circle created between points " << i << " and " << j << ".\n";
-                        LOG_INFO("Circle created, center =  " + std::to_string(i) + ", onCircle = " + std::to_string(j));
+                        LOG_G_INFO("Circle created, center =  " + std::to_string(i) + ", onCircle = " + std::to_string(j));
                     }
                     catch (std::invalid_argument const& ex) {
                         std::cout << "Error: " << ex.what() << "\n";
-                        LOG_ERROR("Failed to create Circle with center = " + std::to_string(i) + ", onCircle = " + std::to_string(j) + ": " + std::string(ex.what()));
+                        LOG_G_ERROR("Failed to create Circle with center = " + std::to_string(i) + ", onCircle = " + std::to_string(j) + ": " + std::string(ex.what()));
                     }
                 }
                 else if (command == "c") {
@@ -144,16 +152,29 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
                     try {
                         commandManager.addCircle(x, y, x1, y1);
                         std::cout << std::format("Circle created between coords {}, {} and {}, {}\n", x, y, x1, y1);
-                        LOG_INFO("Circle created, center = (" + std::to_string(x) + ", " + std::to_string(y) + "), onCircle = (" + std::to_string(x1) + ", " + std::to_string(y1) + ")");
+                        LOG_G_INFO("Circle created, center = (" + std::to_string(x) + ", " + std::to_string(y) + "), onCircle = (" + std::to_string(x1) + ", " + std::to_string(y1) + ")");
                     }
                     catch (std::invalid_argument const& ex) {
                         std::cout << "Error: " << ex.what() << "\n";
-                        LOG_ERROR("Failed to create Circle with center = (" + std::to_string(x) + ", " + std::to_string(y) + "), onCircle = (" + std::to_string(x1) + ", " + std::to_string(y1) + "): " + std::string(ex.what()));
+                        LOG_G_ERROR("Failed to create Circle with center = (" + std::to_string(x) + ", " + std::to_string(y) + "), onCircle = (" + std::to_string(x1) + ", " + std::to_string(y1) + "): " + std::string(ex.what()));
+                    }
+                }
+                else if (command == "3p") {
+                    int i, j, k;
+                    if (!inputValidation(i, j, k)) { continue; };
+                    try {
+                        commandManager.addCircle3points(i, j,k);
+                        std::cout << "Circle created points " << i << ", " << j <<"," <<k<< "\n";
+                        LOG_G_INFO("Circle created, 3 points " + std::to_string(i) + ", " + std::to_string(j)+", "+ std::to_string(k));
+                    }
+                    catch (std::invalid_argument const& ex) {
+                        std::cout << "Error: " << ex.what() << "\n";
+                        LOG_G_ERROR("Failed to create Circle with 3 points " + std::to_string(i) + ", " + std::to_string(j) + ", " + std::to_string(k) + ": " + std::string(ex.what()));
                     }
                 }
                 else {
-                    std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
-                    LOG_WARNING("Invalid command = {" + command + "}. Expected 'c' or 'p'. ");
+                    std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index or '3p'.\n";
+                    LOG_G_WARNING("Invalid command = {" + command + "}. Expected 'c' or 'p'. ");
                     continue;
                 }
             }
@@ -161,9 +182,8 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
                 std::cin.clear();
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 std::cout << "Unknown command.\n";
-                LOG_WARNING("Unknown command: " + command);
+                LOG_G_WARNING("Unknown command: " + command);
             }
-            
         }
         else if (command == "delete") {
             std::vector<int> indices;
@@ -174,14 +194,14 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
                         std::cout << "Delete shape " << index << ".\n";
                     else{
                         std::cout << "Delete shape error " << ".\n";
-                        LOG_ERROR("Failed to delete shape");
+                        LOG_G_ERROR("Failed to delete shape");
                     }
                         
                 }
             }
             catch (std::invalid_argument const& ex) {
                 std::cout << "Error: " << ex.what() << "\n";
-                LOG_ERROR("Failed to delete shape " + std::string(ex.what()));
+                LOG_G_ERROR("Failed to delete shape " + std::string(ex.what()));
             }
             
         }
@@ -192,7 +212,7 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
             }
             catch (std::invalid_argument const& ex) {
                 std::cout << "Error: " << ex.what() << "\n";
-                LOG_ERROR("Failed to delete all shapes " + std::string(ex.what()));
+                LOG_G_ERROR("Failed to delete all shapes " + std::string(ex.what()));
             }
             
         }
@@ -200,7 +220,7 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
             int index = 0;
             if (!inputValidation(index)) { continue; };
             std::cin >> command;
-            LOG_DEBUG("command = " + command);
+            LOG_INFO("command",command);
             if (command != "to") {
                 std::cout << "missed \"to\"" << endl;
                 std::cin.clear();
@@ -212,11 +232,11 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
             try {
                 commandManager.moveShape(index, x, y);
                 std::cout << "Move shape "<<index<<" to "<<x<<", "<<y << "\n";
-                LOG_INFO("Move shape " + to_string(index) + " to " + to_string(x) + ", " + to_string(y) + "\n");
+                LOG_G_INFO("Move shape " + to_string(index) + " to " + to_string(x) + ", " + to_string(y) + "\n");
             }
             catch (std::invalid_argument const& ex) {
                 std::cout << "Error: " << ex.what() << "\n";
-                LOG_ERROR("Failed to move shape" + std::string(ex.what()));
+                LOG_G_ERROR("Failed to move shape" + std::string(ex.what()));
             }
         }
         else if (command == "rotate") {
@@ -225,10 +245,10 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
 
             std::string tmp;
             std::cin >> tmp;
-            LOG_DEBUG("command = " + tmp);
+            LOG_INFO("command",tmp);
             if (tmp != "around"&& tmp != "ar") {
                 std::cout << "missed \"around\"\n";
-                LOG_WARNING("missed \"around\" in rotate command");
+                LOG_G_WARNING("missed \"around\" in rotate command");
                 std::cin.clear();
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 continue;
@@ -236,15 +256,15 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
 
             std::string centerType;
             std::cin >> centerType; // Определяем тип центра (c или p)
-            LOG_DEBUG("command = " + centerType);
+            LOG_INFO("command",centerType);
             if (centerType == "c") { // Центр задан координатами
                 float x, y;
                 if (!inputValidation(x,y)) { continue; };
                 std::cin >> tmp;
-                LOG_DEBUG("command = " + tmp);
+                LOG_INFO("command",tmp);
                 if (tmp != "by") {
                     std::cout << "missed \"by\"\n";
-                    LOG_WARNING("missed \"by\" in rotate command");
+                    LOG_G_WARNING("missed \"by\" in rotate command");
                     std::cin.clear();
                     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                     continue;
@@ -257,11 +277,11 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
                 try {
                     commandManager.rotateShape(index, x, y, angle);
                     std::cout << "Rotate shape " << index << " around " << x << ", " << y <<" by "<<angle << "\n";
-                    LOG_INFO("Rotate shape " + to_string(index) + " around " + to_string(x) + ", " + to_string(y) + " by " + to_string(angle) + "\n");
+                    LOG_G_INFO("Rotate shape " + to_string(index) + " around " + to_string(x) + ", " + to_string(y) + " by " + to_string(angle) + "\n");
                 }
                 catch (std::invalid_argument const& ex) {
                     std::cout << "Error: " << ex.what() << "\n";
-                    LOG_ERROR("Failed to rotate shape" + std::string(ex.what()));
+                    LOG_G_ERROR("Failed to rotate shape" + std::string(ex.what()));
                 }
             }
             else if (centerType == "p") { // Центр задан индексом точки
@@ -284,11 +304,11 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
                 try {
                     commandManager.rotateShape(index, centerIndex, angle);
                     std::cout << "Rotate shape " << index << " around point " << centerIndex << " by " << angle << "\n";
-                    LOG_INFO("Rotate shape " + to_string(index) + " around index =" + to_string(centerIndex) + " by " + to_string(angle) + "\n");
+                    LOG_G_INFO("Rotate shape " + to_string(index) + " around index =" + to_string(centerIndex) + " by " + to_string(angle) + "\n");
                 }
                 catch (std::invalid_argument const& ex) {
                     std::cout << "Error: " << ex.what() << "\n";
-                    LOG_ERROR("Failed to rotate shape" + std::string(ex.what()));
+                    LOG_G_ERROR("Failed to rotate shape" + std::string(ex.what()));
                 }
                
             }
@@ -296,41 +316,41 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
                 std::cin.clear();
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
-                LOG_WARNING("Invalid center type. Use 'c' for coordinates or 'p' for point index.");
+                LOG_G_WARNING("Invalid center type. Use 'c' for coordinates or 'p' for point index.");
                 continue;
             }
         }
         else if (command == "parallel"|| command == "ll") {
             int index = 0;
-            cin >> index;
+            if (!inputValidation(index)) { continue; };
             std::string pointType = "";
             std::cin >> pointType; // Определяем тип центра (c или p)
-            LOG_DEBUG("command = " + pointType);
+            LOG_INFO("command",pointType);
             if (pointType == "c") { // Центр задан координатами
                 float x, y;
-                std::cin >> x >> y;
+                if (!inputValidation(x,y)) { continue; };
                 
                 try {
                     commandManager.addParallelLine(index, x, y);
                     std::cout << "add Parallel line to line " << index << ", point " << x << ", " << y<<endl;
-                    LOG_INFO(std::format("add Parallel line to line index = {}, point ({}, {})",index,x,y));
+                    LOG_G_INFO(std::format("add Parallel line to line index = {}, point ({}, {})",index,x,y));
                 }
                 catch (std::invalid_argument const& ex) {
                     std::cout << "Error: " << ex.what() << "\n";
-                    LOG_ERROR("Failed to add parallel " + std::string(ex.what()));
+                    LOG_G_ERROR("Failed to add parallel " + std::string(ex.what()));
                 }
             }
             else if (pointType == "p") { // Центр задан индексом точки
                 int pointIndex;
-                std::cin >> pointIndex;
+                if (!inputValidation(pointIndex)) { continue; };
                 try {
                     commandManager.addParallelLine(index, pointIndex);
                     std::cout << "add Parallel line to line " << index << ", point " << pointIndex <<endl;
-                    LOG_INFO(std::format("add Parallel line to line index = {}, point index = {}", index, pointIndex));
+                    LOG_G_INFO(std::format("add Parallel line to line index = {}, point index = {}", index, pointIndex));
                 }
                 catch (std::invalid_argument const& ex) {
                     std::cout << "Error: " << ex.what() << "\n";
-                    LOG_ERROR("Failed to add parallel " + std::string(ex.what()));
+                    LOG_G_ERROR("Failed to add parallel " + std::string(ex.what()));
                 }
                 
             }
@@ -338,42 +358,42 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
                 std::cin.clear();
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 std::cout << "Invalid point type. Use 'c' for coordinates or 'p' for point index.\n";
-                LOG_WARNING("Invalid point type. Use 'c' for coordinates or 'p' for point index.");
+                LOG_G_WARNING("Invalid point type. Use 'c' for coordinates or 'p' for point index.");
                 continue;
             }
         }
         else if (command == "perpendicular" || command == "pr") {
 
             int index = 0;
-            cin >> index;
+            if (!inputValidation(index)) { continue; };
             std::string pointType = "";
             std::cin >> pointType; // Определяем тип центра (c или p)
-            LOG_DEBUG("command = " + pointType);
+            LOG_INFO("command",pointType);
             if (pointType == "c") { // Центр задан координатами
                 float x, y;
-                std::cin >> x >> y;
+                if (!inputValidation(x, y)) { continue; };
 
                 try {
                     commandManager.addPerpendicularLine(index, x, y);
                     std::cout << "add Perpendicular line to line " << index << ", point " << x << ", " << y << endl;
-                    LOG_INFO(std::format("add Perpendicular line to line index = {}, point ({}, {})", index, x, y));
+                    LOG_G_INFO(std::format("add Perpendicular line to line index = {}, point ({}, {})", index, x, y));
                 }
                 catch (std::invalid_argument const& ex) {
                     std::cout << "Error: " << ex.what() << "\n";
-                    LOG_ERROR("Failed to add Perpendicular " + std::string(ex.what()));
+                    LOG_G_ERROR("Failed to add Perpendicular " + std::string(ex.what()));
                 }
             }
             else if (pointType == "p") { // Центр задан индексом точки
                 int pointIndex;
-                std::cin >> pointIndex;
+                if (!inputValidation(pointIndex)) { continue; };
                 try {
                     commandManager.addPerpendicularLine(index, pointIndex);
                     std::cout << "add Perpendicular line to line " << index << ", point  " << pointIndex << endl;
-                    LOG_INFO(std::format("add add Perpendicular line to line index = {}, point index = {}", index, pointIndex));
+                    LOG_G_INFO(std::format("add add Perpendicular line to line index = {}, point index = {}", index, pointIndex));
                 }
                 catch (std::invalid_argument const& ex) {
                     std::cout << "Error: " << ex.what() << "\n";
-                    LOG_ERROR("Failed to add Perpendicular " + std::string(ex.what()));
+                    LOG_G_ERROR("Failed to add Perpendicular " + std::string(ex.what()));
                 }
 
             }
@@ -381,7 +401,7 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
                 std::cin.clear();
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 std::cout << "Invalid center type. Use 'c' for coordinates or 'p' for point index.\n";
-                LOG_WARNING("Invalid point type. Use 'c' for coordinates or 'p' for point index.");
+                LOG_G_WARNING("Invalid point type. Use 'c' for coordinates or 'p' for point index.");
                 continue;
             }
         }
@@ -389,41 +409,40 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
             
             std::string pointType;
             std::cin >> pointType; // Определяем тип центра (c или p)
-            LOG_DEBUG("command = " + pointType);
+            LOG_INFO("command",pointType);
             if (pointType == "c") { // Центр задан координатами
                 float x = 0, y = 0;
                 float x1 = 0, y1 = 0;
-                std::cin >> x >> y;
-                std::cin >> x1 >> y1;
+                if (!inputValidation(x, y, x1, y1)) { continue; };
                 try {
                     commandManager.addMedianPerpendicular(x, y, x1, y1);
                     std::cout << std::format("add Median Perpendicular ({}, {}), ({}, {})\n", x, y, x1, y1);
-                    LOG_INFO(std::format("add Median Perpendicular ({}, {}), ({}, {})", x, y, x1, y1));
+                    LOG_G_INFO(std::format("add Median Perpendicular ({}, {}), ({}, {})", x, y, x1, y1));
                 }
                 catch (std::invalid_argument const& ex) {
                     std::cout << "Error: " << ex.what() << "\n";
-                    LOG_ERROR("Failed to add Median Perpendicular " + std::string(ex.what()));
+                    LOG_G_ERROR("Failed to add Median Perpendicular " + std::string(ex.what()));
                 }
                
             }
             else if (pointType == "p") { // Центр задан индексом точки
                 int point1Index = 0,point2Index= 0;
-                std::cin >> point1Index>> point2Index;
+                if (!inputValidation(point1Index, point2Index)) { continue; };
                 try {
                     commandManager.addMedianPerpendicular(point1Index,point2Index);
                     std::cout << std::format("add Median Perpendicular point index {}, {}\n", point1Index, point2Index);
-                    LOG_INFO(std::format("add Median Perpendicular point index {}, {}", point1Index, point2Index));
+                    LOG_G_INFO(std::format("add Median Perpendicular point index {}, {}", point1Index, point2Index));
                 }
                 catch (std::invalid_argument const& ex) {
                     std::cout << "Error: " << ex.what() << "\n";
-                    LOG_ERROR("Failed to add Median Perpendicular " + std::string(ex.what()));
+                    LOG_G_ERROR("Failed to add Median Perpendicular " + std::string(ex.what()));
                 }
             }
             else {
                 std::cin.clear();
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 std::cout << "Invalid point type. Use 'c' for coordinates or 'p' for point index.\n";
-                LOG_WARNING("Invalid point type. Use 'c' for coordinates or 'p' for point index.");
+                LOG_G_WARNING("Invalid point type. Use 'c' for coordinates or 'p' for point index.");
                 continue;
             }
                 
@@ -432,43 +451,41 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
 
             std::string pointType;
             std::cin >> pointType; // Определяем тип центра (c или p)
-            LOG_DEBUG("command = " + pointType);
+            LOG_INFO("command",pointType);
             if (pointType == "c") { // Центр задан координатами
                 float x = 0, y = 0;
                 float x1 = 0, y1 = 0;
                 float x2 = 0, y2 = 0;
-                std::cin >> x >> y;
-                std::cin >> x1 >> y1;
-                std::cin >> x2 >> y2;
+                if (!inputValidation(x, y, x1, y1, x2, y2)) { continue; };
                 try {
                     //commandManager.addBisectrix(x, y, x1, y1);
                     std::cout << std::format("add bisectrix ({}, {}), ({}, {}), ({}, {})\n", x, y, x1, y1,x2,y2);
-                    LOG_INFO(std::format("add bisectrix ({}, {}), ({}, {}), ({}, {})", x, y, x1, y1,x2,y2));
+                    LOG_G_INFO(std::format("add bisectrix ({}, {}), ({}, {}), ({}, {})", x, y, x1, y1,x2,y2));
                 }
                 catch (std::invalid_argument const& ex) {
                     std::cout << "Error: " << ex.what() << "\n";
-                    LOG_ERROR("Failed to add bisectrix " + std::string(ex.what()));
+                    LOG_G_ERROR("Failed to add bisectrix " + std::string(ex.what()));
                 }
 
             }
             else if (pointType == "p") { // Центр задан индексом точки
                 int point1Index = 0, point2Index = 0, point3Index = 0;
-                std::cin >> point1Index >> point2Index>> point3Index;
+                if (!inputValidation(point1Index, point2Index, point3Index)) { continue; };
                 try {
                     commandManager.addBisectrix(point1Index, point2Index,point3Index);
                     std::cout << std::format("add bisectrix point index {}, {}, {}\n", point1Index, point2Index, point3Index);
-                    LOG_INFO(std::format("add Median Perpendicular point index {}, {}, {}", point1Index, point2Index, point3Index));
+                    LOG_G_INFO(std::format("add Median Perpendicular point index {}, {}, {}", point1Index, point2Index, point3Index));
                 }
                 catch (std::invalid_argument const& ex) {
                     std::cout << "Error: " << ex.what() << "\n";
-                    LOG_ERROR("Failed to add bisectrix " + std::string(ex.what()));
+                    LOG_G_ERROR("Failed to add bisectrix " + std::string(ex.what()));
                 }
             }
             else {
                 std::cin.clear();
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 std::cout << "Invalid point type. Use 'c' for coordinates or 'p' for point index.\n";
-                LOG_WARNING("Invalid point type. Use 'c' for coordinates or 'p' for point index.");
+                LOG_G_WARNING("Invalid point type. Use 'c' for coordinates or 'p' for point index.");
                 continue;
             }
 
@@ -476,82 +493,85 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
         else if (command == "intersection" || command == "inter") {
             int index1 = 0, index2 = 0;
             string type1, type2;
-            cin >> type1 >> index1;
-            cin >> type2>> index2;
-            LOG_DEBUG("command = " + type1+ type2);
+            cin >> type1;
+            LOG_INFO("command", type1);
+            if (!inputValidation(index1)) { continue; };
+            cin >> type2;
+            LOG_INFO("command", type2);
+            if (!inputValidation(index2)) { continue; };
 
             if (type1 == "line" && type2 == "line") {
 
                 try {
                     commandManager.intersection(st_line, index1, st_line, index2);
                     std::cout << std::format("add intersection Line {} - Line {}\n",index1,index2);
-                    LOG_INFO(std::format("add intersection Line {} - Line {}", index1, index2));
+                    LOG_G_INFO(std::format("add intersection Line {} - Line {}", index1, index2));
                 }
                 catch (std::invalid_argument const& ex) {
                     std::cout << "Error: " << ex.what() << "\n";
-                    LOG_ERROR("Failed to add intersection line line " + std::string(ex.what()));
+                    LOG_G_ERROR("Failed to add intersection line line " + std::string(ex.what()));
                 }
             }
             else {
                 std::cout << "not for this type\n";
-                LOG_WARNING("cant intersection type: "+ type1+", "+ type2);
+                LOG_G_WARNING("cant intersection type: "+ type1+", "+ type2);
             }
 
         }
         else if (command == "belong") {
             int index;
-            cin >> index;
+            if (!inputValidation(index)) { continue; };
             
             std::string pointType;
             std::cin >> pointType; // Определяем тип центра (c или p)
-            LOG_DEBUG("command = " + pointType);
+            LOG_INFO("command",pointType);
             shared_ptr<Point> point;
             if (pointType == "c") { // Центр задан координатами
                 float x, y;
-                std::cin >> x >> y;
+                if (!inputValidation(x,y)) { continue; };
                 try {
                     commandManager.addPointBelong(index, x, y);
                     std::cout << std::format("add Point Belone Line {}\n", index);
-                    LOG_INFO(std::format("add Point Belone Line {}", index));
+                    LOG_G_INFO(std::format("add Point Belone Line {}", index));
                 }
                 catch (std::invalid_argument const& ex) {
                     std::cout << "Error: " << ex.what() << "\n";
-                    LOG_ERROR("Failed to add belong point " + std::string(ex.what()));
+                    LOG_G_ERROR("Failed to add belong point " + std::string(ex.what()));
                 }
             }
             else if (pointType == "p") { // Центр задан индексом точки
                 int pointIndex;
-                std::cin >> pointIndex;
+                if (!inputValidation(pointIndex)) { continue; };
                 try {
                     commandManager.addPointBelong(index, pointIndex);
                     std::cout << std::format("add Point Belone Line {}\n", index);
-                    LOG_INFO(std::format("add Point Belone Line {}", index));
+                    LOG_G_INFO(std::format("add Point Belone Line {}", index));
                 }
                 catch (std::invalid_argument const& ex) {
                     std::cout << "Error: " << ex.what() << "\n";
-                    LOG_ERROR("Failed to add belong point " + std::string(ex.what()));
+                    LOG_G_ERROR("Failed to add belong point " + std::string(ex.what()));
                 }
             }
             else {
                 std::cin.clear();
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
                 std::cout << "Invalid point type. Use 'c' for coordinates or 'p' for point index.\n";
-                LOG_WARNING("Invalid point type. Use 'c' for coordinates or 'p' for point index.");
+                LOG_G_WARNING("Invalid point type. Use 'c' for coordinates or 'p' for point index.");
                 continue;
             }
 
         }
         else if (command == "inf") {
             int index1;
-            std::cin >> index1;
-
+            
+            if (!inputValidation(index1)) { continue; };
             try {
                 commandManager.getInf(index1);
-                LOG_INFO("get info shape index ="+to_string(index1));
+                LOG_G_INFO("get info shape index ="+to_string(index1));
             }
             catch (std::invalid_argument const& ex) {
                 std::cout << "Error: " << ex.what() << "\n";
-                LOG_ERROR("Failed to get inf " + std::string(ex.what()));
+                LOG_G_ERROR("Failed to get inf " + std::string(ex.what()));
             }
         }
         else if (command == "color") {
@@ -559,7 +579,7 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
             double r, g, b, a;
             if (!inputValidation(r, g, b, a)) { continue; };
             std::cin >> command;
-            LOG_DEBUG("command = " + command);
+            LOG_INFO("command",command);
             if (command != "to") {
                 std::cout << "missed \"to\"" << endl;
                 std::cin.clear();
@@ -572,7 +592,7 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
                 for (int index : indices) {
                     commandManager.setColor(Color(r, g, b, a), index);
                     std::cout << "color shape " << index << " to " << r << ", " << g << ", " << b << ", " << a << "\n";
-                    LOG_INFO("color shape " + to_string(index) + " to " + to_string(r) + ", "
+                    LOG_G_INFO("color shape " + to_string(index) + " to " + to_string(r) + ", "
                         + to_string(g) + ", "
                         + to_string(b) + ", "
                         + to_string(a) + "\n");
@@ -580,7 +600,7 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
             }
             catch (std::invalid_argument const& ex) {
                 std::cout << "Error: " << ex.what() << "\n";
-                LOG_ERROR("Failed to set shape shape" + std::string(ex.what()));
+                LOG_G_ERROR("Failed to set shape shape" + std::string(ex.what()));
             }
             }
         else if (command == "colorDef") {
@@ -589,14 +609,14 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
             try {
                 commandManager.setDefaultColor(Color(r, g, b, a));
                 std::cout << "default color = " << r << ", " << g << ", " << b << ", " << a << "\n";
-                LOG_INFO("default color = " + to_string(r) + ", "
+                LOG_G_INFO("default color = " + to_string(r) + ", "
                     + to_string(g) + ", "
                     + to_string(b) + ", "
                     + to_string(a) + "\n");
             }
             catch (std::invalid_argument const& ex) {
                 std::cout << "Error: " << ex.what() << "\n";
-                LOG_ERROR("Failed to set default color" + std::string(ex.what()));
+                LOG_G_ERROR("Failed to set default color" + std::string(ex.what()));
             }
         }
         else if (command == "colorAll") {
@@ -605,27 +625,28 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
             try {
                 commandManager.setAllColor(Color(r, g, b, a));
                 std::cout << "All color = " << r << ", " << g << ", " << b << ", " << a << "\n";
-                LOG_INFO("Allt color = " + to_string(r) + ", "
+                LOG_G_INFO("Allt color = " + to_string(r) + ", "
                     + to_string(g) + ", "
                     + to_string(b) + ", "
                     + to_string(a) + "\n");
             }
             catch (std::invalid_argument const& ex) {
                 std::cout << "Error: " << ex.what() << "\n";
-                LOG_ERROR("Failed to set All color" + std::string(ex.what()));
+                LOG_G_ERROR("Failed to set All color" + std::string(ex.what()));
             }
         }
         else if (command == "exit") {
             std::cout << "Exiting program...\n";
             isRunning = false;
-            LOG_INFO("Exit command processor");
+            LOG_G_INFO("Exit command processor");
         }
         else {
              std::cin.clear();
              std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
              std::cout << "Unknown command.\n";
-             LOG_WARNING("Unknown command: "+ command);
+             LOG_G_WARNING("Unknown command: "+ command);
         }
+        
        /* else if (command == "addMarkers") {
             int i;
             std::cin >> i;
@@ -1158,13 +1179,13 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
                 }
             
         }*/
-       
+        
     }
 
+    
 }
 
 
-// при изменении линии она меняет положение точек те обновляют состояни линии 2 раза не круто 
 
 // линия делится на 2 луча, луч делится на отрезок и луч
 // добавит везде геттреры и сеттеры
@@ -1188,14 +1209,17 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
 
 int main()
 {
-    //LOG_DEBUG выключен!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   
 
-    LOG_IN_ONE_FILE(true);
     LOG_IN_CONSOLE(false);
-    LOG_SET_FORMAT("[%L] %T - %M\n");
-    LOG_INFO("____________________________START__________________________");
+    LOG_G_SET_FORMAT("[%L] %T - %M\n");
+    LOG_G_INFO("____________________________START__________________________");
 
+    LOG_SET_FORMAT("command", "%M ");
+    LOG_INFO("command", "_______start_______\n");
 
+    // важное, добавть инфалидность себе и детям если например точка была 
+    // пересчением прямых а они стали параллельны, или если точка пересечение окружности и прямой то когда пересечения нет делаем точку и ее детей инвалидами и не рисуем
 
     std::atomic<bool> isRunning{ true };
 
@@ -1211,8 +1235,8 @@ int main()
     commandThread.join();
 
 
-
-    LOG_INFO("_____________________________END____________________________");
+    LOG_INFO("command", "\n________end________\n");
+    LOG_G_INFO("_____________________________END____________________________");
     return 0;
 }
 

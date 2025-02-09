@@ -124,10 +124,7 @@ std::vector<Point> go::findIntersection(std::shared_ptr<Line> line1, std::shared
 
 	double t = 0;
 	if (std::abs(det) < precision)
-		if (det > 0)
-			t = DBL_MAX;
-		else
-			t = DBL_MIN;
+		return {};
 	else
 		t = (C1 * B2 - C2 * B1) / det;
 
@@ -188,6 +185,33 @@ std::vector<Point> go::findIntersection(std::shared_ptr<Line> line1, std::shared
  * - Use a precision threshold to check if D is close to 0, indicating parallel or overlapping lines.
  * - Return std::optional<Point> to handle cases where the lines do not intersect.
  */
+}
+std::vector<Point> go::findIntersection(LineSimple& line1, LineSimple& line2) {
+	
+	
+
+	double A1 = line1.p2.x - line1.p1.x;
+	double B1 = -(line2.p2.x - line2.p1.x);
+	double C1 = line2.p1.x - line1.p1.x;
+
+	double A2 = line1.p2.y - line1.p1.y;
+	double B2 = -(line2.p2.y - line2.p1.y);
+	double C2 = line2.p1.y - line1.p1.y;
+
+	double det = A1 * B2 - A2 * B1;
+
+	double t = 0;
+	if (std::abs(det) < precision)
+		return {};
+	else
+		t = (C1 * B2 - C2 * B1) / det;
+
+	// Вычисляем точку пересечения
+	Point intersection;
+	intersection.x = line1.p1.x + t * (line1.p2.x - line1.p1.x);
+	intersection.y = line1.p1.y + t * (line1.p2.y - line1.p1.y);
+
+	return { intersection };
 }
 //
 //std::vector<Point> go::findIntersection(const Circle& circle, const Line& line) {

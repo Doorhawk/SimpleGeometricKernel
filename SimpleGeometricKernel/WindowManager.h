@@ -31,18 +31,18 @@ private:
 
         if (event.type == Event::Closed) {
             isRunning = false;
-            LOG_INFO("window is close");
+            LOG_G_INFO("window is close");
             window.close();
         }
         if (event.type == sf::Event::KeyPressed) {
             if (event.key.code == sf::Keyboard::M) {
                 mode = wMode::figureMove;
-                LOG_INFO("figureMove mod ON in window");
+                LOG_G_INFO("figureMove mod ON in window");
 
             }
             else if (event.key.code == sf::Keyboard::C) {
                 mode = wMode::cameraMove;
-                LOG_INFO("cameraMove mod ON in window");
+                LOG_G_INFO("cameraMove mod ON in window");
             }
         }
         if(mode == wMode::cameraMove){
@@ -62,7 +62,7 @@ private:
                     selectedShape = nullptr;
                     infAboutSelectedShape = "";
                 }
-                LOG_DEBUG("LBM Clicked");
+                LOG_G_DEBUG("LBM Clicked");
                 sf::Vector2f mousePos = getMouseWorldPosition();
                 double minDistance = std::numeric_limits<double>::max();
                 std::shared_ptr<BasicShape> PointMin = nullptr;
@@ -74,7 +74,7 @@ private:
                         if (distance < minDistance && distance < threshold) {
                             selectedShape = shape;
                             minDistance = distance;
-                            LOG_DEBUG("found the point you clicked on, index = "+to_string(index));
+                            LOG_G_DEBUG("found the point you clicked on, index = "+to_string(index));
                         }
                     }
                 }
@@ -88,7 +88,7 @@ private:
                             if (distance < minDistance && distance < threshold) {
                                 selectedShape = shape;
                                 minDistance = distance;
-                                LOG_DEBUG("found the shape you clicked on, index = " + to_string(index));
+                                LOG_G_DEBUG("found the shape you clicked on, index = " + to_string(index));
                             }
                         }
                     }
@@ -96,7 +96,7 @@ private:
 
                 // Если нашли фигуру, сохраняем её начальную позицию
                 if (selectedShape) {
-                    LOG_DEBUG(std::format("starting position = ({}, {})", mousePos.x, mousePos.y));
+                    LOG_G_DEBUG(std::format("starting position = ({}, {})", mousePos.x, mousePos.y));
                     startPose = Point(mousePos.x, mousePos.y);
                     infAboutSelectedShape = selectedShape->printInf();
                     isDragging = true;
@@ -107,7 +107,7 @@ private:
 
             // Отпускание кнопки мыши
             if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left) {
-                LOG_DEBUG("LBM Released");
+                LOG_G_DEBUG("LBM Released");
                 isDragging = false; // Останавливаем перемещение
                 //selectedShape->setColor(Color::Black);
                 //selectedShape = nullptr;
@@ -220,10 +220,10 @@ public:
         global::size *= 0.1;
         view.zoom(0.1);
         isDragging = false;
-        LOG_INFO("window is open");
+        LOG_G_INFO("window is open");
         if (!font.loadFromFile("arialmt.ttf")) {
             std::cout << "font errror";
-            LOG_ERROR("Failed to load font");
+            LOG_G_ERROR("Failed to load font");
         }
     }
 

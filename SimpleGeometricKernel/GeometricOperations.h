@@ -4,6 +4,7 @@
 #include <climits>
 class Point;
 class Line;
+class LineSimple;
 class Circle;
 
 class go {
@@ -29,6 +30,9 @@ public:
 	static double distance(const Point& point, std::shared_ptr<Circle> circle);
 	static double distance(std::shared_ptr<Circle> circle, const Point& point);
 	static std::vector<Point> findIntersection(std::shared_ptr<Line> line1, std::shared_ptr<Line> line2);
+
+	static std::vector<Point> findIntersection(LineSimple& line1, LineSimple& line2);
+
 	//static std::vector<Point> findIntersection(const Circle& circle, const Line& line);
 	//static std::vector<Point> findIntersection(const Line& line, const Circle& circle);
 	//static std::vector<Point> findIntersection(const Circle& circle1, const Circle& circle2);
