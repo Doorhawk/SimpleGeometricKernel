@@ -90,7 +90,7 @@ double go::distance(const Point& point, std::shared_ptr<Line> line) {
 }
 double go::distance(std::shared_ptr<Circle> circle, const Point& point) {
 
-	double distCentPoint = go::distance(point, *circle->center);
+	double distCentPoint = go::distance(point, circle->center);
 	return  abs(distCentPoint - circle->radius);
 }
 double go::distance(const Point& point, std::shared_ptr<Circle> circle) {

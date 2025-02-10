@@ -64,7 +64,11 @@ public:
     // Установка родителя с указанием типа зависимости
     void setParent(DependsTypes _type, const std::vector <std::weak_ptr<Depends>>& _parent);
     // Добавление ребёнка
-    void addChild(const std::shared_ptr<Depends>& child);
+    template <typename... Args>
+    void addChildren(const Args&... args) {
+        removeExpiredChildren();
+        (children.push_back(args), ...);  // Разворачиваем список аргументов
+    }
     string printFamilyInfo() const;
     void removeExpiredChildren();
     // Уведомление ребёнка о том, что родитель удалён
@@ -91,7 +95,7 @@ public:
     virtual void move(double dx, double dy) = 0;
     virtual void rotate(const Point& center, double angle) = 0;
     virtual ~BasicShape() = default; // деструктор у каждого потомка свой по умолчанью
-    void moveChildren(double dx, double dy);
+    bool moveChildren(double dx, double dy);
 };
 
 class Point : public BasicShape {
@@ -173,22 +177,22 @@ public:
 
 class Circle : public virtual BasicShape {
 private:
-    std::shared_ptr<Point> center;
-    std::shared_ptr<Point> onCircle;
+    Point center;
+    Point onCircle;
     double radius = 0;
     friend class go;
-    Circle(std::shared_ptr<Point> center, std::shared_ptr<Point> onCircle);
+    
 protected:
     
 public:
-    static std::shared_ptr<Circle> create(std::shared_ptr<Point> _center, std::shared_ptr<Point> _onCircle);
+    Circle(Point center,Point onCircle);
     virtual std::string printInf() const override;
     void move(double dx, double dy) override;
     virtual void rotate(const Point& _center, double angle) override;
     Circle& operator=(const Circle& other);
     virtual void draw(sf::RenderWindow& window, int num, sf::Font& font) const override;
-    std::shared_ptr<Point> getCenter() const;
-    std::shared_ptr<Point> getOnCircle() const;
+    Point getCenter() const;
+    Point getOnCircle() const;
     double getRadius() const;
     void update() override;
     void init() override;

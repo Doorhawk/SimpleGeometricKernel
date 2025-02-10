@@ -46,8 +46,12 @@ public:
 	void addCircle(double x, double y, double x1, double y1) {
 		auto center = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(x, y)));
 		auto onCircle= std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(x1, y1)));
-		if (center && onCircle)
-			shapeManager.addBasicShape(Circle::create(center, onCircle));
+		if (center && onCircle) {
+			auto circle2points = shapeManager.addBasicShape(Circle(Point(0, 0), Point(10, 10)));
+			std::vector <std::weak_ptr<Depends>> parents = { center,onCircle };
+			circle2points->setParent(DependsTypes::Circle2points, parents);
+			circle2points->addChildren(center,onCircle);
+		}
 		else
 			throw std::invalid_argument("Error in creation point for circle ");
 	}
@@ -55,28 +59,20 @@ public:
 		auto center1 = getPoint(index1);
 		auto onCircle1 = getPoint(index2);
 
-		auto center = std::make_shared<Point>(Point(0, 0));
-		auto onCircle = std::make_shared<Point>(Point(10, 10));
-		auto circle2points = shapeManager.addBasicShape(Circle::create(center, onCircle));
+		auto circle2points = shapeManager.addBasicShape(Circle(Point(0, 0), Point(10, 10)));
 		std::vector <std::weak_ptr<Depends>> parents = { center1,onCircle1};
 		circle2points->setParent(DependsTypes::Circle2points, parents);
-		circle2points->addChild(center1);
-		circle2points->addChild(onCircle1);
+		circle2points->addChildren(center1,onCircle1);
 	}
 	void addCircle3points(int index1, int index2, int index3) {
 		auto point1 = getPoint(index1);
 		auto point2 = getPoint(index2);
 		auto point3 = getPoint(index3);
 
-		auto center = std::make_shared<Point>(Point(0, 0));
-		auto onCircle = std::make_shared<Point>(Point(10, 10));
-
-		auto circle3points = shapeManager.addBasicShape(Circle::create(center, onCircle));
+		auto circle3points = shapeManager.addBasicShape(Circle(Point(0,0), Point(10,10)));
 		std::vector <std::weak_ptr<Depends>> parents = { point1,point2,point3 };
 		circle3points->setParent(DependsTypes::Circle3points, parents);
-		circle3points->addChild(point1);
-		circle3points->addChild(point2);
-		circle3points->addChild(point3);
+		circle3points->addChildren(point1,point2,point3);
 	}
 
 	bool deleteShape(int index) {

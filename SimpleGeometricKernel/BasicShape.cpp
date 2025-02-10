@@ -96,17 +96,13 @@ void Depends::setParent(DependsTypes _type,const std::vector <std::weak_ptr<Depe
     if (!parent.empty()) {
         for (auto& weakP : parent) {
             if (auto parentPtr = weakP.lock()) {
-                parentPtr->addChild(shared_from_this());
+                parentPtr->addChildren(shared_from_this());
             }
         }
         
     }
     init();
     update();
-}
-void Depends::addChild(const std::shared_ptr<Depends>& child) {
-    removeExpiredChildren();
-    children.push_back(child);
 }
 string Depends::printFamilyInfo() const {
 
@@ -210,11 +206,11 @@ bool Depends::getValid() {
 
 
 BasicShape::BasicShape(const ShapeType type) :Depends(type) {}
-void BasicShape::moveChildren(double dx, double dy) {
+bool BasicShape::moveChildren(double dx, double dy) {
     for (auto& weakChild : children) {
         if (auto childPtr = weakChild.lock()) {
             if (childPtr->getDependsType() != DependsTypes::None) {
-                return;
+                return false;
             }
         }
     }
@@ -223,6 +219,7 @@ void BasicShape::moveChildren(double dx, double dy) {
             dynamic_pointer_cast<BasicShape>(childPtr)->move(dx, dy);
         }
     }
+    return true;
 
 }
 
@@ -433,8 +430,8 @@ double Line::fun(double x) const {
 // Фабричный метод для создания объекта
 std::shared_ptr<Line> Line::create(std::shared_ptr<Point> p1, std::shared_ptr<Point> p2) {
     auto line = std::shared_ptr<Line>(new Line(p1, p2));
-    line->p1->addChild(line);
-    line->p2->addChild(line);
+    line->p1->addChildren(line);
+    line->p2->addChildren(line);
     return line;
 }
 std::string Line::printInf() const {
@@ -647,34 +644,33 @@ void LineSimple::toMedianPerpendicular(const Point& point1, const Point& point2)
 
 
 
-Circle::Circle(std::shared_ptr<Point> center, std::shared_ptr<Point> onCircle) : BasicShape(st_circle), center(center), onCircle(onCircle) {
-    radius = go::distance(*center, *onCircle);
+Circle::Circle(Point center, Point onCircle) : BasicShape(st_circle), center(center), onCircle(onCircle) {
+    radius = go::distance(center, onCircle);
 }
-std::shared_ptr<Circle> Circle::create(std::shared_ptr<Point> _center, std::shared_ptr<Point> _onCircle) {
-    auto circle = std::shared_ptr<Circle>(new Circle(_center, _onCircle));
-    circle->center->addChild(circle);
-    circle->onCircle->addChild(circle);
-    return circle;
-}
+
 std::string Circle::printInf() const  {
     ostringstream oss;
-    oss << "circle " << index << " : center (" << center->x << ", " << center->y << "), radius = " << radius << endl<<printFamilyInfo();
+    oss << "circle " << index << " : center (" << center.x << ", " << center.y << "), radius = " << radius << endl<<printFamilyInfo();
     return oss.str();
 }
 void Circle::move(double dx, double dy)  {
     
     isUpdating = true;
-    center->move(dx, dy);
-    onCircle->move(dx, dy);
+    if (!moveChildren(dx, dy)) {
+        std::cout << "cant move, one cildren is dependent\n";
+        isUpdating = false;
+        return;
+    }
+    center.move(dx, dy);
+    onCircle.move(dx, dy);
     notifyChildren();
-    moveChildren(dx,dy);
     isUpdating = false;
 }
 void Circle::rotate(const Point& _center, double angle) {
     
     isUpdating = true;
-    center->rotate(_center, angle);
-    onCircle->rotate(_center, angle);
+    center.rotate(_center, angle);
+    onCircle.rotate(_center, angle);
     notifyChildren();
     isUpdating = false;
 }
@@ -691,7 +687,7 @@ void Circle::draw(sf::RenderWindow& window, int num, sf::Font& font) const {
     sf::CircleShape shape(radius); // Радиус круга
     int pointAtCircle = std::min(100, std::max(20, static_cast<int>(20 / global::size))); // min 20 -> max 100
     shape.setPointCount(pointAtCircle); // точек на круг
-    shape.setPosition(center->x - radius, center->y - radius); // Устанавливаем позицию круга
+    shape.setPosition(center.x - radius, center.y - radius); // Устанавливаем позицию круга
     shape.setFillColor(sf::Color::Transparent); // Убираем заливку
     shape.setOutlineThickness(1.f * global::size); // Устанавливаем толщину контура
     shape.setOutlineColor(color); // Устанавливаем цвет контура
@@ -700,16 +696,16 @@ void Circle::draw(sf::RenderWindow& window, int num, sf::Font& font) const {
     Text text;
     text.setFont(font);
     text.setScale(1 * global::size, -1 * global::size);
-    text.setPosition(center->x - radius, center->y - radius);
+    text.setPosition(center.x - radius, center.y - radius);
     text.setString("c" + std::to_string(num));
     text.setCharacterSize(15);
     text.setFillColor(color);
     window.draw(text);
 }
-std::shared_ptr<Point> Circle::getCenter() const {
+Point Circle::getCenter() const {
     return center;
 }
-std::shared_ptr<Point> Circle::getOnCircle() const {
+Point Circle::getOnCircle() const {
     return onCircle;
 }
 double Circle::getRadius() const {
@@ -717,7 +713,7 @@ double Circle::getRadius() const {
 }
 void Circle::update() {
     if (dependsType == DependsTypes::None) {
-        radius = go::distance(*center, *onCircle);
+        radius = go::distance(center, onCircle);
     }
     else if (dependsType == DependsTypes::Circle3points) {
         if (parent.empty())
@@ -739,9 +735,9 @@ void Circle::update() {
 
         if (!inter.empty()) {
             
-            *center = inter[0];
-            *onCircle = *point2;
-            radius = go::distance(*center, *onCircle);
+            center = inter[0];
+            onCircle = *point2;
+            radius = go::distance(center, onCircle);
 
             if (!valid) {
                 setValid();
@@ -761,10 +757,10 @@ void Circle::update() {
         auto point1 = std::dynamic_pointer_cast<Point>(parent[0].lock());
         auto point2 = std::dynamic_pointer_cast<Point>(parent[1].lock());
 
-        *center = *point1;
-        *onCircle = *point2;
+        center = *point1;
+        onCircle = *point2;
 
-        radius = go::distance(*center, *onCircle);
+        radius = go::distance(center, onCircle);
     }
 }
 void Circle::init() {
