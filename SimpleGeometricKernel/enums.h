@@ -12,7 +12,8 @@ enum class DependsTypes {
     BelongsToLine,
     IntersectionLineLine,
     Circle3points,
-    Circle2points // center and onCircle
+    Circle2points, // center and onCircle
+    Line2points
 };
 
 

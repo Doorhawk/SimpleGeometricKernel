@@ -19,6 +19,9 @@ std::string toString(DependsTypes dp) {
     case DependsTypes::Bisectrix:               return "Bisectrix";
     case DependsTypes::BelongsToLine:           return "BelongsToLine";
     case DependsTypes::IntersectionLineLine:    return "IntersectionLineLine";
+    case DependsTypes::Circle3points:           return "Circle3points";
+    case DependsTypes::Circle2points:           return "Circle2pointsl";// center and onCircle
+    case DependsTypes::Line2points:             return "Line2points";
     default:                                    return "Unknown";
     }
 }
@@ -71,7 +74,9 @@ Vector Vector::operator/(double scalar) const {
     }
 }
 
-
+std::vector<std::weak_ptr<Depends>> Depends::getChildren() const {
+    return children;
+}
 void Depends::setType(const ShapeType newType) {
     type = newType;
 }
@@ -81,9 +86,25 @@ ShapeType Depends::getType() const {
 }
 void Depends::setColor(Color newColor) {
     color = newColor;
+    oldColor = newColor;
+}
+void Depends::setCildrenColor(Color newcolor, bool setNew) {
+    if(setNew){
+        oldColor = color;
+        color = newcolor;
+    }
+    else {
+        color = oldColor;
+    }
     
+    for (auto& weakChild : children) {
+        if (auto childPtr = weakChild.lock()) {
+            childPtr->setCildrenColor(newcolor,setNew);
+        }
+    }
 }
 void Depends::setIndex(int _index) { index = _index; }
+int Depends::getIndex() { return index; }
 void Depends::setParent(DependsTypes _type,const std::vector <std::weak_ptr<Depends>>& _parent) {
     // Если уже есть родитель, отписываемся от него
 
@@ -104,7 +125,7 @@ void Depends::setParent(DependsTypes _type,const std::vector <std::weak_ptr<Depe
     init();
     update();
 }
-string Depends::printFamilyInfo() const {
+string Depends::getFamilyInfo() const {
 
     std::ostringstream oss;
 
@@ -120,7 +141,7 @@ string Depends::printFamilyInfo() const {
         oss << endl;
     }
     else {
-        oss << "  Parent: None\n";
+        oss << "  Parent: \n";
     }
 
     // Выводим всех детей
@@ -134,7 +155,7 @@ string Depends::printFamilyInfo() const {
         }
     }
     if (!hasChildren) {
-        oss << "None";
+        oss << " ";
     }
     oss << "\n";
 
@@ -154,6 +175,7 @@ void Depends::onParentDeleted() {
 void Depends::notifyChildren() {
     for (auto& weakChild : children) {
         if (auto childPtr = weakChild.lock()) {
+            
             if (childPtr->isUpdating) {
                 continue;
             }
@@ -164,22 +186,34 @@ void Depends::notifyChildren() {
 void Depends::setDependsType(DependsTypes dp) {
     dependsType = dp;
 }
-Depends::~Depends() {
-    // Уведомляем детей о том, что родитель удалён
-    onDelete();
-}
-void Depends::onDelete() {
-    for (auto& childWeakPtr : children) {
-        if (auto child = childWeakPtr.lock()) {
-            child->onParentDeleted(); // Уведомляем ребёнка
-            child->setDependsType(DependsTypes::None);
-        }
-    }
-    dependsType = DependsTypes::None;
-    // Очищаем список детей, удаляя просроченные ссылки
-    removeExpiredChildren();
-    parent.clear();
-}
+//Depends::~Depends() {
+//
+//    setInvalid();
+//    onDelete();
+//}
+//void Depends::onDelete() {
+//    // Удаляем текущий объект из родителей
+//    for (auto& weakParent : parent) {
+//        if (auto sharedParent = weakParent.lock()) {
+//            sharedParent->removeChild(shared_from_this());
+//        }
+//    }
+//
+//    // Копируем `children`, чтобы не менять оригинальный вектор во время итерации
+//    auto childrenCopy = children;
+//
+//    for (auto& childWeakPtr : childrenCopy) {
+//        if (auto child = childWeakPtr.lock()) {
+//            child->onDelete();  // Рекурсивное удаление
+//        }
+//    }
+//
+//    // Обнуляем данные
+//    dependsType = DependsTypes::None;
+//    children.clear();
+//    parent.clear();
+//    // НАДО УДАЛЯТЬ БЕЛОНГОВ!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//}
 DependsTypes Depends::getDependsType() { return dependsType; }
 Color Depends::getColor() {
     return color;
@@ -203,27 +237,57 @@ void Depends::setValid() {
 bool Depends::getValid() {
     return valid;
 }
-
-
-BasicShape::BasicShape(const ShapeType type) :Depends(type) {}
-bool BasicShape::moveChildren(double dx, double dy) {
-    for (auto& weakChild : children) {
-        if (auto childPtr = weakChild.lock()) {
-            if (childPtr->getDependsType() != DependsTypes::None) {
-                return false;
-            }
-        }
-    }
-    for (auto& weakChild : children) {
-        if (auto childPtr = weakChild.lock()) {
-            dynamic_pointer_cast<BasicShape>(childPtr)->move(dx, dy);
-        }
-    }
-    return true;
-
+void Depends::removeChild(const std::shared_ptr<Depends>& child) {
+    children.erase(
+        std::remove_if(children.begin(), children.end(),
+            [&child](const std::weak_ptr<Depends>& weakChild) {
+                return weakChild.lock() == child;  // Удаляем, если указатель совпадает
+            }),
+        children.end()
+    );
 }
 
 
+BasicShape::BasicShape(const ShapeType type) :Depends(type) {}
+bool BasicShape::movebasePoint(double dx, double dy) {
+    for (auto& weakBelong : basePoint) {
+        if (auto belongPtr = weakBelong.lock()) {
+            if (!belongPtr->canMove())
+                return false;
+        }
+    }
+    for (auto& weakBelong : basePoint) {
+        if (auto belongPtr = weakBelong.lock()) {
+            belongPtr->move(dx, dy);
+        }
+    }
+    return true;
+}
+void BasicShape::removeExpiredbasePoint() {
+    basePoint.erase(
+        std::remove_if(basePoint.begin(), basePoint.end(),
+            [](const std::weak_ptr<BasicShape>& wptr) {
+                return wptr.expired();
+            }),
+        basePoint.end());
+
+}
+std::string BasicShape::getBasePointInf() const {
+    ostringstream oss;
+    oss << " base point: ";
+    if (!basePoint.empty()) {
+        for (auto& weakBelong : basePoint) {
+            if (auto belongPtr = weakBelong.lock()) {
+                oss << toString(belongPtr->getType()) << " " << belongPtr->getIndex() << ", ";
+            }
+        }
+    }
+    else {
+        oss << " ";
+    }
+    oss << "\n";
+    return oss.str();
+}
 
 Point::Point(double x, double y) :BasicShape(st_point), x(x), y(y), dependsX(0), dependsY(0) {}
 Point::Point(const Point& other) : BasicShape(st_point), x(other.x), y(other.y), dependsX(0), dependsY(0) {}
@@ -246,23 +310,36 @@ void Point::draw(sf::RenderWindow& window, int num, Font& font) const {
 }
 std::string Point::printInf() const {
     ostringstream oss;
-    oss << "point: "<< index <<" (" << x << ", " << y << ")" << endl<< printFamilyInfo();
+    oss << "point: "<< index <<" (" << x << ", " << y << ")" << endl<< getFamilyInfo()<< getBasePointInf();
     return oss.str();
 }
-void Point::move(double dx, double dy) {
+bool Point::canMove() {
     if (dependsType == DependsTypes::None) {
-        x += dx;
-        y += dy;
+        return true;
     }
     else if (dependsType == DependsTypes::BelongsToLine) {
-        x += dx;
-        y += dy;
-        init();
+        return false;
     }
     else if (dependsType == DependsTypes::IntersectionLineLine) {
-        cout << "cant move intersection point\n";
+        return false;
+    }
+    else {
+        return false;
+    }
+}
+void Point::move(double dx, double dy) {
+    
+    if (dependsType == DependsTypes::IntersectionLineLine) {
+        return;
+    }
+    isUpdating = true;
+    x += dx;
+    y += dy;
+    if (dependsType == DependsTypes::BelongsToLine) {
+        init();
     }
     notifyChildren();
+    isUpdating = false;
 }
 void Point::rotate(const Point& center, double angle) {
     if (dependsType == DependsTypes::None) {
@@ -336,12 +413,12 @@ void Point::update() {
         auto line = std::dynamic_pointer_cast<Line>(parent[0].lock());
         if (!line)
             throw std::invalid_argument("Parent of point not line ");
-        Vector vec = (*line->p2 - *line->p1);
+        Vector vec = (line->p2 - line->p1);
         double abs = vec.abs();
         vec = vec.normalize();
 
-        x = abs*dependsX*vec.x + line->p1->x;
-        y = abs*dependsX*vec.y + line->p1->y;
+        x = abs*dependsX*vec.x + line->p1.x;
+        y = abs*dependsX*vec.y + line->p1.y;
     }
     else if (dependsType == DependsTypes::IntersectionLineLine) {
         if (parent.empty())
@@ -351,7 +428,7 @@ void Point::update() {
         auto line1 = std::dynamic_pointer_cast<Line>(parent[0].lock());
         auto line2 = std::dynamic_pointer_cast<Line>(parent[1].lock());
 
-        std::vector<Point> inter = go::findIntersection(line1, line2);
+        std::vector<Point> inter = go::findIntersection(*line1, *line2);
 
         if (!inter.empty()) {
             x = inter[0].x;
@@ -367,7 +444,9 @@ void Point::update() {
     else {
 
     }
+    isUpdating = true;
     notifyChildren();
+    isUpdating = false;
 }
 void Point::init() {
     if (dependsType == DependsTypes::None) {
@@ -381,7 +460,7 @@ void Point::init() {
         auto line = std::dynamic_pointer_cast<Line>(parent[0].lock());
         if (!line)
             throw std::invalid_argument("Parent of point not line ");
-        Point p1 = (*line->p1 - *line->p2);
+        Point p1 = (line->p1 - line->p2);
         p1 = { -p1.y,p1.x };
         Point p2 = p1 + *this;
         p1 = *this;
@@ -422,41 +501,40 @@ void Point::init() {
     }
 }
 
-Line::Line(std::shared_ptr<Point> p1, std::shared_ptr<Point> p2)
-    : BasicShape(st_line), p1(std::move(p1)), p2(std::move(p2)) {}
+
+Line::Line(Point p1, Point p2): BasicShape(st_line), p1(p1), p2(p2) {}
+Line::Line(): BasicShape(st_line), p1(Point(0,0)), p2(Point(10,10)) {}
 double Line::fun(double x) const {
     return 0;
 }
-// Фабричный метод для создания объекта
-std::shared_ptr<Line> Line::create(std::shared_ptr<Point> p1, std::shared_ptr<Point> p2) {
-    auto line = std::shared_ptr<Line>(new Line(p1, p2));
-    line->p1->addChildren(line);
-    line->p2->addChildren(line);
-    return line;
-}
 std::string Line::printInf() const {
     ostringstream oss;
-    oss << "line " << index << " : (" << p1->x << ", " << p1->y << "), (" << p2->x << ", " << p2->y << ")" << endl<<printFamilyInfo();
+    oss << "line " << index << " : (" << p1.x << ", " << p1.y << "), (" << p2.x << ", " << p2.y << ")" << endl
+        <<getFamilyInfo() << getBasePointInf();
     return oss.str();
 }
+bool Line::canMove() {
+    return true;
+}
 void Line::move(double dx, double dy) {
-    if (p1->getDependsType() == DependsTypes::BelongsToLine ||
-        p2->getDependsType() == DependsTypes::BelongsToLine) {
-        cout << "can't move line wirch have belong point\n";
-    }
-    else if (dependsType == DependsTypes::MedianPerpendicular) {
+    
+    if (dependsType == DependsTypes::MedianPerpendicular) {
         cout << "can't move middle perpendicular\n";
+        return;
     }
-    else if (dependsType == DependsTypes::Bisectrix){
+    else if (dependsType == DependsTypes::Bisectrix) {
         cout << "can't move middle Bisectrix\n";
+        return;
     }
-    else {
-        isUpdating = true;
-        p1->move(dx, dy);
-        p2->move(dx, dy);
+    isUpdating = true;
+    if (!movebasePoint(dx, dy)) {
         isUpdating = false;
-        notifyChildren();
+        return;
     }
+    p1.move(dx, dy);
+    p2.move(dx, dy);
+    notifyChildren();
+    isUpdating = false;
     
 }
 void Line::rotate(const Point& center, double angle) {
@@ -466,16 +544,13 @@ void Line::rotate(const Point& center, double angle) {
     else if (dependsType == DependsTypes::Perpendicular) {
         cout << "can't rotate perpendicular line\n";
     }
-    else if (p1->getDependsType() == DependsTypes::BelongsToLine ||p2->getDependsType() == DependsTypes::BelongsToLine) {
-        cout << "can't rotate line wirch have belong point\n";
-    }
     else if (dependsType == DependsTypes::MedianPerpendicular) {
         cout << "can't rotate middle perpendicular\n";
     }
     else {
         isUpdating = true;
-        p1->rotate(center, angle);
-        p2->rotate(center, angle);
+        p1.rotate(center, angle);
+        p2.rotate(center, angle);
         isUpdating = false;
         notifyChildren();
     }
@@ -489,25 +564,25 @@ Line& Line::operator=(const Line& other) {
     return *this;
 }
 Point Line::getStart() const {
-    return *p1;
+    return p1;
 }
 Point Line::getEnd() const {
-    return *p2;
+    return p2;
 }
 void Line::draw(sf::RenderWindow& window, int num, sf::Font& font) const {
     
     View view = window.getView();
     float size = view.getSize().x + abs(view.getCenter().x) * 2 + abs(view.getCenter().y) * 2;
     sf::VertexArray line(sf::Lines);
-    if ((p2->x - p1->x) != 0) {
-        float ysize = (size - p1->x) * (p2->y - p1->y) / (p2->x - p1->x) + p1->y;
-        float y_size = (-size - p1->x) * (p2->y - p1->y) / (p2->x - p1->x) + p1->y;
+    if ((p2.x - p1.x) != 0) {
+        float ysize = (size - p1.x) * (p2.y - p1.y) / (p2.x - p1.x) + p1.y;
+        float y_size = (-size - p1.x) * (p2.y - p1.y) / (p2.x - p1.x) + p1.y;
         line.append(sf::Vertex(sf::Vector2f(size, ysize), color)); // Левая граница
         line.append(sf::Vertex(sf::Vector2f(-size, y_size), color));  // Правая граница
     }
     else {
-        line.append(sf::Vertex(sf::Vector2f(p1->x, size), color)); // Левая граница
-        line.append(sf::Vertex(sf::Vector2f(p1->x, -size), color));
+        line.append(sf::Vertex(sf::Vector2f(p1.x, size), color)); // Левая граница
+        line.append(sf::Vertex(sf::Vector2f(p1.x, -size), color));
     }
     window.draw(line);
 
@@ -516,7 +591,7 @@ void Line::draw(sf::RenderWindow& window, int num, sf::Font& font) const {
     Text text;
     text.setFont(font);
     text.setScale(1 * global::size, -1 * global::size);
-    Point mid = go::findMiddle(*p1, *p2);
+    Point mid = go::findMiddle(p1, p2);
     text.setPosition(mid.x + 15 * global::size, mid.y + 15 * global::size);
     text.setString("L" + std::to_string(num));
     text.setCharacterSize(15);
@@ -526,41 +601,61 @@ void Line::draw(sf::RenderWindow& window, int num, sf::Font& font) const {
 }
 void Line::toMedianPerpendicular(const Point& point1, const Point& point2) {
     Point midle = go::findMiddle(point1, point2);
-    *p1 = midle;
+    p1 = midle;
     Vector vec = point1 - point2;
     vec = { -(vec.y),vec.x };
     vec = vec.normalize() * 10;
-    (*p2) = *p1 + vec;
+    p2 = p1 + vec;
 }
 void Line::update() {
 
     if (dependsType == DependsTypes::None) {
 
     }
+    else if (dependsType == DependsTypes::Line2points) {
+        if (parent.empty())
+            throw std::invalid_argument("update line with 2point - error: parent.empty() == true");
+        if (parent.size() != 2)
+            throw std::invalid_argument("update line with 2point - error: parent.size() != 2");
+        auto point1 = std::dynamic_pointer_cast<Point>(parent[0].lock());
+        auto point2 = std::dynamic_pointer_cast<Point>(parent[1].lock());
+        
+        p1 = *point1;
+        p2 = *point2;
+
+    }
     else if (dependsType == DependsTypes::Parallel) {
         if (parent.empty())
             throw std::invalid_argument("update line with Parallel - error: parent.empty() == true");
-        if (parent.size() != 1)
-            throw std::invalid_argument("update line with Parallel - error: parent.size() != 1");
+        if (parent.size() != 2)
+            throw std::invalid_argument("update line with Parallel - error: parent.size() != 2");
         auto line = std::dynamic_pointer_cast<Line>(parent[0].lock());
+        auto point = std::dynamic_pointer_cast<Point>(parent[1].lock());
         if (!line)
-            throw std::invalid_argument("Parent of parallel line not line ");
-        Vector vec = { *line->p2 - *line->p1};
+            throw std::invalid_argument("Parent 1 of parallel line not line ");
+        if (!point)
+            throw std::invalid_argument("Parent 2 of parallel line not point ");
+        Vector vec = { line->p2 - line->p1};
         vec = vec.normalize() * 10;
-        (*p2) = *p1 + vec;
+        p2 = *point + vec;
+        p1 = *point;
     }
     else if (dependsType == DependsTypes::Perpendicular) {
         if (parent.empty())
             throw std::invalid_argument("update line with Perpendicular - error: parent.empty() == true");
-        if (parent.size() != 1)
-            throw std::invalid_argument("update line with Perpendicular - error: parent.size() != 1");
+        if (parent.size() != 2)
+            throw std::invalid_argument("update line with Perpendicular - error: parent.size() != 2");
         auto line = std::dynamic_pointer_cast<Line>(parent[0].lock());
+        auto point = std::dynamic_pointer_cast<Point>(parent[1].lock());
         if (!line)
-            throw std::invalid_argument("Parent of perpendicular line not line ");
-        Vector vec = *line->p2 - *line->p1;
+            throw std::invalid_argument("Parent 1 of perpendicular line not line ");
+        if (!point)
+            throw std::invalid_argument("Parent 2 of perpendicular line not point ");
+        Vector vec = line->p2 -line->p1;
         vec = { -(vec.y),vec.x};
         vec = vec.normalize() * 10;
-        (*p2) = *p1 + vec;
+        p2 = *point + vec;
+        p1 = *point;
 
     }
     else if (dependsType == DependsTypes::MedianPerpendicular) {
@@ -589,14 +684,15 @@ void Line::update() {
         vec1 = vec1.normalize();
         vec2 = vec2.normalize();
 
-        *p1 = *point2 - (vec1 + vec2) * 10;
-        *p2 = *point2 + (vec1 + vec2) * 10;
+        p1 = *point2 - (vec1 + vec2) * 10;
+        p2 = *point2 + (vec1 + vec2) * 10;
     }
     else {
 
     }
-
+    isUpdating = true;
     notifyChildren();
+    isUpdating = false;
     //std::cout << "Line updated based on points.\n";
 }
 void Line::init() {
@@ -605,41 +701,6 @@ void Line::init() {
 
 
 
-
-LineSimple::LineSimple(Point p1, Point p2): p1(p1), p2(p2) {}
-LineSimple::LineSimple() : p1(Point(0,0)), p2(Point(1,1)) {}
-double LineSimple::fun(double x) const {
-    return 0;
-}
-void LineSimple::move(double dx, double dy) {
-        p1.move(dx, dy);
-        p2.move(dx, dy);
-}
-void LineSimple::rotate(const Point& center, double angle) {
-     p1.rotate(center, angle);
-     p2.rotate(center, angle);
-}
-LineSimple& LineSimple::operator=(const LineSimple& other) {
-    if (this != &other) {
-        p1 = other.p1;
-        p2 = other.p2;
-    }
-    return *this;
-}
-Point LineSimple::getStart() const {
-    return p1;
-}
-Point LineSimple::getEnd() const {
-    return p2;
-}
-void LineSimple::toMedianPerpendicular(const Point& point1, const Point& point2) {
-    Point midle = go::findMiddle(point1, point2);
-    p1 = midle;
-    Vector vec = point1 - point2;
-    vec = { -(vec.y),vec.x };
-    vec = vec.normalize() * 10;
-    p2 = p1 + vec;
-}
 
 
 
@@ -650,14 +711,18 @@ Circle::Circle(Point center, Point onCircle) : BasicShape(st_circle), center(cen
 
 std::string Circle::printInf() const  {
     ostringstream oss;
-    oss << "circle " << index << " : center (" << center.x << ", " << center.y << "), radius = " << radius << endl<<printFamilyInfo();
+    oss << "circle " << index << " : center (" << center.x << ", " << center.y << "), radius = " << radius << endl
+        <<getFamilyInfo() << getBasePointInf();
     return oss.str();
+}
+bool Circle::canMove() {
+    return true;
 }
 void Circle::move(double dx, double dy)  {
     
+    
     isUpdating = true;
-    if (!moveChildren(dx, dy)) {
-        std::cout << "cant move, one cildren is dependent\n";
+    if (!movebasePoint(dx, dy)) {
         isUpdating = false;
         return;
     }
@@ -685,7 +750,8 @@ Circle& Circle::operator=(const Circle& other) {
 void Circle::draw(sf::RenderWindow& window, int num, sf::Font& font) const {
 
     sf::CircleShape shape(radius); // Радиус круга
-    int pointAtCircle = std::min(100, std::max(20, static_cast<int>(20 / global::size))); // min 20 -> max 100
+    //int pointAtCircle = std::min(100, std::max(20, static_cast<int>(20 / global::size))); // min 20 -> max 100
+    int pointAtCircle = 100;
     shape.setPointCount(pointAtCircle); // точек на круг
     shape.setPosition(center.x - radius, center.y - radius); // Устанавливаем позицию круга
     shape.setFillColor(sf::Color::Transparent); // Убираем заливку
@@ -725,8 +791,8 @@ void Circle::update() {
         auto point2 = std::dynamic_pointer_cast<Point>(parent[1].lock());
         auto point3 = std::dynamic_pointer_cast<Point>(parent[2].lock());
 
-        LineSimple line1;
-        LineSimple line2;
+        Line line1;
+        Line line2;
 
         line1.toMedianPerpendicular(*point1, *point2);
         line2.toMedianPerpendicular(*point2, *point3);
@@ -762,6 +828,9 @@ void Circle::update() {
 
         radius = go::distance(center, onCircle);
     }
+    isUpdating = true;
+    notifyChildren();
+    isUpdating = false;
 }
 void Circle::init() {
 

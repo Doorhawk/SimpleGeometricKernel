@@ -25,7 +25,7 @@ private:
     std::atomic<bool>& isRunning;
     std::string infAboutSelectedShape = "";
     Color startColor = Color::Black;
-
+    bool changeCildrenColor = false;
 
     void controls(Event event) {
 
@@ -44,6 +44,14 @@ private:
                 mode = wMode::cameraMove;
                 LOG_G_INFO("cameraMove mod ON in window");
             }
+            else if (event.key.code == sf::Keyboard::Y) {
+                changeCildrenColor = true;
+                LOG_G_INFO("change Cildren Color = true");
+            }
+            else if (event.key.code == sf::Keyboard::N) {
+                changeCildrenColor = false;
+                LOG_G_INFO("change Cildren Color = false");
+            }
         }
         if(mode == wMode::cameraMove){
             // Удержание мыши для перемещения
@@ -58,6 +66,7 @@ private:
         else if(mode == wMode::figureMove) {
             if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
                 if (selectedShape) {
+                    selectedShape->setCildrenColor(Color::Blue, false);
                     selectedShape->setColor(startColor);
                     selectedShape = nullptr;
                     infAboutSelectedShape = "";
@@ -69,6 +78,8 @@ private:
                 // Ищем ближайшую фигуру к месту клика
                 float threshold = view.getSize().x * 0.02f;
                 for (const auto& [index, shape] : shapeManager.shapes) {
+                    if (!shape->getValid())
+                        continue;
                     if (shape && shape->getType() == st_point) { // Проверяем только точки
                         double distance = getDistance(shape, mousePos.x, mousePos.y);
                         if (distance < minDistance && distance < threshold) {
@@ -84,6 +95,8 @@ private:
                     minDistance = std::numeric_limits<double>::max(); // Сброс минимальной дистанции
                     for (const auto& [index, shape] : shapeManager.shapes) {
                         if (shape) {
+                            if (!shape->getValid())
+                                continue;
                             double distance = getDistance(shape, mousePos.x, mousePos.y);
                             if (distance < minDistance && distance < threshold) {
                                 selectedShape = shape;
@@ -101,6 +114,8 @@ private:
                     infAboutSelectedShape = selectedShape->printInf();
                     isDragging = true;
                     startColor = selectedShape->getColor();
+                    if (changeCildrenColor)
+                        selectedShape->setCildrenColor(Color::Blue,true);
                     selectedShape->setColor(Color::Blue);
                 }
             }
@@ -196,12 +211,18 @@ private:
         default:
             break;
         }
+        string CildColor = "";
+        if (changeCildrenColor) 
+            CildColor = "yes";
+        else
+            CildColor = "no";
 
+        
 
         window.setView(window.getDefaultView()); // Сбрасываем представление
         sf::Text text;
         text.setFont(font);                     // Устанавливаем шрифт
-        text.setString(mod_name+"\n\n"+ infAboutSelectedShape);        // Устанавливаем текст
+        text.setString(mod_name+"\n"+"Children change color: "+CildColor+"\n\n"+ infAboutSelectedShape);        // Устанавливаем текст
         text.setCharacterSize(14);              // Размер текста в пикселях
         text.setFillColor(sf::Color::Black);    // Цвет текста
         text.setScale(1, 1);

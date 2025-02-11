@@ -89,7 +89,9 @@ public:
         LOG_G_DEBUG("Attempting to remove shape with index = " + std::to_string(index));
         try {
             auto shape = getBasicShape(index);
-            shape->onDelete();
+
+            removeChildrenRecursively(shape);
+
             shapes.erase(index);
             LOG_G_INFO("Shape removed successfully, index = " + std::to_string(index));
         }
@@ -104,7 +106,19 @@ public:
         cv.notify_all();
         return true;
     }
+    
 
+    void removeChildrenRecursively(const std::shared_ptr<Depends>& shape) {
+        // Копируем список детей, чтобы избежать изменения вектора во время удаления
+        auto childrenCopy = shape->getChildren();
+
+        for (const auto& weakChild : childrenCopy) {
+            if (auto child = weakChild.lock()) {
+                removeChildrenRecursively(child);  // Рекурсивно удаляем детей
+                shapes.erase(child->getIndex());  // Удаляем ребёнка из ShapeManager
+            }
+        }
+    }
     void drawAll(sf::RenderWindow& window, Font font) {
         std::unique_lock<std::mutex> lock(shapesMutex);
         cv.wait(lock, [this] { return shapesModified; });

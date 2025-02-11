@@ -73,8 +73,8 @@ double go::distance(std::shared_ptr<Line> line, const Point& point) {
 	// a = (x1 - x2,y1 - y2) - направление прямой
 	// (a,w) 
 
-	Vector a = *line->p2 - *line->p1; // - направление прямой
-	Vector w = *line->p1 - point; // - направление между точкой и первой точкой прямой
+	Vector a = line->p2 - line->p1; // - направление прямой
+	Vector w = line->p1 - point; // - направление между точкой и первой точкой прямой
 	double answ = abs(a.x * w.y - a.y * w.x); // Модуль определителя (векторное произведение в 2D)
 
 	if (a.abs() == 0) {
@@ -106,19 +106,19 @@ double go::distance(const Point& point, std::shared_ptr<Circle> circle) {
 //	
 //}
 std::shared_ptr<Line> go::getPerpendicular(std::shared_ptr<Line> line, std::shared_ptr<Point> point) {
-	Point p1 = (*line->p1 - *line->p2);
+	Point p1 = (line->p1 - line->p2);
 	p1 = { -p1.y,p1.x };
-	return std::make_shared<Line>(Line(std::make_shared<Point>(p1 + *point), point));
+	return std::make_shared<Line>(Line((p1 + *point), *point));
 }
 
-std::vector<Point> go::findIntersection(std::shared_ptr<Line> line1, std::shared_ptr<Line> line2) {
-	double A1 = line1->p2->x - line1->p1->x;
-	double B1 = -(line2->p2->x - line2->p1->x);
-	double C1 = line2->p1->x - line1->p1->x;
+std::vector<Point> go::findIntersection(Line line1, Line line2) {
+	double A1 = line1.p2.x - line1.p1.x;
+	double B1 = -(line2.p2.x - line2.p1.x);
+	double C1 = line2.p1.x - line1.p1.x;
 
-	double A2 = line1->p2->y - line1->p1->y;
-	double B2 = -(line2->p2->y - line2->p1->y);
-	double C2 = line2->p1->y - line1->p1->y;
+	double A2 = line1.p2.y - line1.p1.y;
+	double B2 = -(line2.p2.y - line2.p1.y);
+	double C2 = line2.p1.y - line1.p1.y;
 
 	double det = A1 * B2 - A2 * B1;
 
@@ -130,8 +130,8 @@ std::vector<Point> go::findIntersection(std::shared_ptr<Line> line1, std::shared
 
 	// Вычисляем точку пересечения
 	Point intersection;
-	intersection.x = line1->p1->x + t * (line1->p2->x - line1->p1->x);
-	intersection.y = line1->p1->y + t * (line1->p2->y - line1->p1->y);
+	intersection.x = line1.p1.x + t * (line1.p2.x - line1.p1.x);
+	intersection.y = line1.p1.y + t * (line1.p2.y - line1.p1.y);
 
 	return { intersection };
 	/*
@@ -186,33 +186,7 @@ std::vector<Point> go::findIntersection(std::shared_ptr<Line> line1, std::shared
  * - Return std::optional<Point> to handle cases where the lines do not intersect.
  */
 }
-std::vector<Point> go::findIntersection(LineSimple& line1, LineSimple& line2) {
-	
-	
 
-	double A1 = line1.p2.x - line1.p1.x;
-	double B1 = -(line2.p2.x - line2.p1.x);
-	double C1 = line2.p1.x - line1.p1.x;
-
-	double A2 = line1.p2.y - line1.p1.y;
-	double B2 = -(line2.p2.y - line2.p1.y);
-	double C2 = line2.p1.y - line1.p1.y;
-
-	double det = A1 * B2 - A2 * B1;
-
-	double t = 0;
-	if (std::abs(det) < precision)
-		return {};
-	else
-		t = (C1 * B2 - C2 * B1) / det;
-
-	// Вычисляем точку пересечения
-	Point intersection;
-	intersection.x = line1.p1.x + t * (line1.p2.x - line1.p1.x);
-	intersection.y = line1.p1.y + t * (line1.p2.y - line1.p1.y);
-
-	return { intersection };
-}
 //
 //std::vector<Point> go::findIntersection(const Circle& circle, const Line& line) {
 //	if (go::distance(circle.cen, line)>circle.rad+precision) {

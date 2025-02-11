@@ -50,16 +50,20 @@ protected:
     ShapeType type;
     int index = 0;
     Color color = Color::Black;
+    Color oldColor = Color::Black;
     bool valid = true;
     void setType(const ShapeType newType);
 public:
+    std::vector<std::weak_ptr<Depends>> getChildren() const;
     Depends(const ShapeType type);
     ShapeType getType() const;
-    virtual ~Depends();
-    void onDelete();
+    virtual ~Depends() = default;
+    //void onDelete();
     void setDependsType(DependsTypes dp);
     void setIndex(int _index);
+    int getIndex();
     void setColor(Color color);
+    void setCildrenColor(Color color,bool setNew);
     Color getColor();
     // Установка родителя с указанием типа зависимости
     void setParent(DependsTypes _type, const std::vector <std::weak_ptr<Depends>>& _parent);
@@ -69,8 +73,9 @@ public:
         removeExpiredChildren();
         (children.push_back(args), ...);  // Разворачиваем список аргументов
     }
-    string printFamilyInfo() const;
-    void removeExpiredChildren();
+    string getFamilyInfo() const;
+    void removeExpiredChildren(); // удаялет пустые сслки 
+    void removeChild(const std::shared_ptr<Depends>& child); //удаляет чела если он инвалид 
     // Уведомление ребёнка о том, что родитель удалён
     void onParentDeleted();
     // Уведомление детей об изменении
@@ -86,16 +91,24 @@ public:
 };
 class BasicShape : public Depends {
 private:
-    
+    std::vector<std::weak_ptr<BasicShape>> basePoint;
 protected:
 public:
+    template <typename... Args>
+    void addbasePoint(const Args&... args) {
+        //removeExpiredbasePoint();
+        (basePoint.push_back(args), ...);
+    }
+    void removeExpiredbasePoint();
     BasicShape(const ShapeType type);
     virtual void draw(sf::RenderWindow& window, int num, sf::Font& font) const = 0; // Метод отрисовки virtual => у каждого потомка свой должен быть оперделен
     virtual std::string printInf() const = 0;
     virtual void move(double dx, double dy) = 0;
     virtual void rotate(const Point& center, double angle) = 0;
     virtual ~BasicShape() = default; // деструктор у каждого потомка свой по умолчанью
-    bool moveChildren(double dx, double dy);
+    virtual bool canMove() = 0; // может ли другая фигура подвинуть эту через белонгс
+    bool movebasePoint(double dx, double dy);
+    std::string getBasePointInf() const;
 };
 
 class Point : public BasicShape {
@@ -132,18 +145,19 @@ public:
     void setY(double newy);
     void update() override;
     void init() override;
+    bool canMove() override;
 };
 class Line : public virtual BasicShape {
 protected:
-    std::shared_ptr<Point> p1, p2;
+    Point p1, p2;
     friend class go;
     friend class Point;
     double fun(double x) const;
-    Line(std::shared_ptr<Point> p1, std::shared_ptr<Point> p2);
+    
 
 public:
-    // Фабричный метод для создания объекта
-    static std::shared_ptr<Line> create(std::shared_ptr<Point> p1, std::shared_ptr<Point> p2);
+    Line(Point p1,Point p2);
+    Line();
     virtual std::string printInf() const override;
     void move(double dx, double dy) override;
     void rotate(const Point& center, double angle) override;
@@ -154,25 +168,9 @@ public:
     void update() override;
     void init() override;
     void toMedianPerpendicular(const Point& p1, const Point& p2);
+    bool canMove() override;
 };
 
-
-class LineSimple {
-protected:
-    Point p1, p2;
-    friend class go;
-    friend class Point;
-    double fun(double x) const;
-public:
-    LineSimple(Point p1, Point p2);
-    LineSimple();
-    void move(double dx, double dy);
-    void rotate(const Point& center, double angle);
-    LineSimple& operator=(const LineSimple& other);
-    Point getStart() const;
-    Point getEnd() const;
-    void toMedianPerpendicular(const Point& p1, const Point& p2);
-};
 
 
 class Circle : public virtual BasicShape {
@@ -196,6 +194,7 @@ public:
     double getRadius() const;
     void update() override;
     void init() override;
+    bool canMove() override;
     
 };
 

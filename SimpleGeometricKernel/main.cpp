@@ -362,7 +362,7 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
                 continue;
             }
         }
-        else if (command == "perpendicular" || command == "pr") {
+        else if (command == "perpendicular" || command == "pp") {
 
             int index = 0;
             if (!inputValidation(index)) { continue; };
@@ -625,10 +625,10 @@ void commandProcessor(CommandManager& commandManager, std::atomic<bool>& isRunni
             try {
                 commandManager.setAllColor(Color(r, g, b, a));
                 std::cout << "All color = " << r << ", " << g << ", " << b << ", " << a << "\n";
-                LOG_G_INFO("Allt color = " + to_string(r) + ", "
+                LOG_G_INFO("All color = " + to_string(r) + ", "
                     + to_string(g) + ", "
                     + to_string(b) + ", "
-                    + to_string(a) + "\n");
+                    + to_string(a));
             }
             catch (std::invalid_argument const& ex) {
                 std::cout << "Error: " << ex.what() << "\n";
@@ -1230,8 +1230,8 @@ int main()
     std::thread commandThread(commandProcessor, std::ref(commandManager), std::ref(isRunning));
 
     WindowManager windowManager(shapeManager, isRunning);
+    
     windowManager.show();
-
     commandThread.join();
 
 
