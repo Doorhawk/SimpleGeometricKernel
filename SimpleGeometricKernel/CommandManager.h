@@ -10,6 +10,10 @@ class CommandManager
 public:
 	CommandManager(ShapeManager& shapeManager) :shapeManager(shapeManager) {}
 	
+	int addPoint(double x, double y) {
+		return shapeManager.addBasicShape(Point(x, y))->getIndex();
+	}
+
 	void setDefaultColor(Color newColor) {
 		shapeManager.setDefaultColor(newColor);
 	}
@@ -24,64 +28,74 @@ public:
 		shapeManager.setAllColor(newColor);
 	}
 
-	void addPoint(double x, double y) {
-		shapeManager.addBasicShape(Point(x, y));
-	}
+	
 
-	void addLine(double x, double y,double x1,double y1) {
+	tuple<int,int,int> addLine(double x, double y,double x1,double y1,bool isSegment = false) {
+		int i1 = 0, i2 = 0, i3 = 0;
 		auto p1 = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(x, y)));
 		auto p2 = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(x1, y1)));
+		i1 = p1->getIndex();
+		i2 = p2->getIndex();
 		if (p1 && p2) {
-			auto line2point = shapeManager.addBasicShape(Line());
-			std::vector <std::weak_ptr<Depends>> parents = { p1,p2 };
-			line2point->setParent(DependsTypes::Line2points, parents);
+			auto line2point = shapeManager.addBasicShape(Line(isSegment));
+			i3 = line2point->getIndex();
+			line2point->setParent(DependsTypes::Line2points, { p1,p2 });
 			line2point->addbasePoint(p1, p2);
 		}
 		else
 			throw std::invalid_argument("Error in creation point for line.");
+		return { i1,i2,i3 };
+		
 	}
-	void addLine(int index1, int index2) {
+	int addLine(int index1, int index2, bool isSegment = false) {
         
 		auto p1 = getPoint(index1);
 		auto p2 = getPoint(index2);
 
-		auto line2point = shapeManager.addBasicShape(Line());
-		std::vector <std::weak_ptr<Depends>> parents = { p1,p2 };
-		line2point->setParent(DependsTypes::Line2points, parents);
+		auto line2point = shapeManager.addBasicShape(Line(isSegment));
+		line2point->setParent(DependsTypes::Line2points, { p1,p2 });
 		line2point->addbasePoint(p1, p2);
-        
+		return line2point->getIndex();
 	}
-
-	void addCircle(double x, double y, double x1, double y1) {
+	
+	// return index <point1 point2 circle>
+	tuple<int, int, int> addCircle(double x, double y, double x1, double y1) {
+		
+		int i1 = 0, i2 = 0, i3 = 0;
 		auto center = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(x, y)));
 		auto onCircle= std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(x1, y1)));
+		i1 = center->getIndex();
+		i2 = onCircle->getIndex();
 		if (center && onCircle) {
 			auto circle2points = shapeManager.addBasicShape(Circle(Point(0, 0), Point(10, 10)));
-			std::vector <std::weak_ptr<Depends>> parents = { center,onCircle };
-			circle2points->setParent(DependsTypes::Circle2points, parents);
+			i3 = circle2points->getIndex();
+			circle2points->setParent(DependsTypes::Circle2points, { center,onCircle });
 			circle2points->addbasePoint(center,onCircle);
 		}
 		else
 			throw std::invalid_argument("Error in creation point for circle ");
+		return { i1,i2,i3 };
 	}
-	void addCircle(int index1, int index2) {
+	int addCircle(int index1, int index2) {
 		auto center1 = getPoint(index1);
 		auto onCircle1 = getPoint(index2);
 
 		auto circle2points = shapeManager.addBasicShape(Circle(Point(0, 0), Point(10, 10)));
-		std::vector <std::weak_ptr<Depends>> parents = { center1,onCircle1};
-		circle2points->setParent(DependsTypes::Circle2points, parents);
+		circle2points->setParent(DependsTypes::Circle2points, { center1,onCircle1 });
 		circle2points->addbasePoint(center1,onCircle1);
+
+		return circle2points->getIndex();
 	}
-	void addCircle3points(int index1, int index2, int index3) {
+	int addCircle3points(int index1, int index2, int index3) {
 		auto point1 = getPoint(index1);
 		auto point2 = getPoint(index2);
 		auto point3 = getPoint(index3);
 
 		auto circle3points = shapeManager.addBasicShape(Circle(Point(0,0), Point(10,10)));
-		std::vector <std::weak_ptr<Depends>> parents = { point1,point2,point3 };
-		circle3points->setParent(DependsTypes::Circle3points, parents);
+		circle3points->setParent(DependsTypes::Circle3points, { point1,point2,point3 });
 		circle3points->addbasePoint(point1,point2,point3);
+
+		return circle3points->getIndex();
 	}
 
 	bool deleteShape(int index) {
@@ -120,10 +134,8 @@ public:
 		auto line = getLine(lineIndex);
 		auto point1 = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(x, y)));
 		
-
 		auto parallelLine = shapeManager.addBasicShape(Line());
-		std::vector <std::weak_ptr<Depends>> parents = { line,point1 };
-		parallelLine->setParent(DependsTypes::Parallel, parents);
+		parallelLine->setParent(DependsTypes::Parallel, { line,point1 });
 		parallelLine->addbasePoint(point1);
 
 	}
@@ -132,8 +144,7 @@ public:
 		auto point1 = getPoint(pointIndex);
 
 		auto parallelLine = shapeManager.addBasicShape(Line());
-		std::vector <std::weak_ptr<Depends>> parents = { line,point1 };
-		parallelLine->setParent(DependsTypes::Parallel, parents);
+		parallelLine->setParent(DependsTypes::Parallel, { line,point1 });
 		parallelLine->addbasePoint(point1);
 	}
 
@@ -142,8 +153,7 @@ public:
 		auto point1 = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(x, y)));
 
 		auto perpendicularLine = shapeManager.addBasicShape(Line());
-		std::vector <std::weak_ptr<Depends>> parents = { line,point1 };
-		perpendicularLine->setParent(DependsTypes::Perpendicular, parents);
+		perpendicularLine->setParent(DependsTypes::Perpendicular, { line,point1 });
 		perpendicularLine->addbasePoint(point1);
 	}
 	void addPerpendicularLine(int lineIndex, int pointIndex) {
@@ -153,21 +163,23 @@ public:
 
 
 		auto perpendicularLine = shapeManager.addBasicShape(Line());
-		std::vector <std::weak_ptr<Depends>> parents = { line,point1 };
-		perpendicularLine->setParent(DependsTypes::Perpendicular, parents);
+		perpendicularLine->setParent(DependsTypes::Perpendicular, { line,point1 });
 		perpendicularLine->addbasePoint(point1);
 	}
 
 	void addMedianPerpendicular(double x, double y, double x1, double y1) {
+		
 		auto point = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(x, y)));
 		auto point1 = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(x1, y1)));
-
+		
 		auto linePoint1 = std::make_shared<Point>(Point(0, 0));
 		auto linePoint2 = std::make_shared<Point>(Point(10, 10));
 
 		auto medianPerpendicular = shapeManager.addBasicShape(Line());
-		std::vector <std::weak_ptr<Depends>> parents = { point1, point };
-		medianPerpendicular->setParent(DependsTypes::MedianPerpendicular, parents);
+		medianPerpendicular->setParent(DependsTypes::MedianPerpendicular, { point1, point });
+
+		auto midpoint = shapeManager.addBasicShape(Point());
+		midpoint->setParent(DependsTypes::Midpoint, { point,point1 });
 	}
 	void addMedianPerpendicular(int index1, int index2) {
 		
@@ -178,8 +190,25 @@ public:
 		auto linePoint2 = std::make_shared<Point>(Point(10, 10));
 
 		auto medianPerpendicular = shapeManager.addBasicShape(Line());
-		std::vector <std::weak_ptr<Depends>> parents = { point1, point2 };
-		medianPerpendicular->setParent(DependsTypes::MedianPerpendicular, parents);
+		medianPerpendicular->setParent(DependsTypes::MedianPerpendicular, { point1, point2 });
+
+		auto midpoint = shapeManager.addBasicShape(Point());
+		midpoint->setParent(DependsTypes::Midpoint, { point1,point2 });
+	}
+
+	void addMidpoint(double x, double y, double x1, double y1) {
+		auto point = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(x, y)));
+		auto point1 = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(x1, y1)));
+
+		auto midpoint = shapeManager.addBasicShape(Point());
+		midpoint->setParent(DependsTypes::Midpoint, { point,point1 });
+	}
+	void addMidpoint(int index1, int index2) {
+		auto point = getPoint(index1);
+		auto point1 = getPoint(index2);
+
+		auto midpoint = shapeManager.addBasicShape(Point());
+		midpoint->setParent(DependsTypes::Midpoint, { point,point1 });
 	}
 
 	void addBisectrix(int index1, int index2, int index3) {
@@ -188,8 +217,7 @@ public:
 		auto point3 = getPoint(index3);
 
 		auto bisectrix = shapeManager.addBasicShape(Line());
-		std::vector <std::weak_ptr<Depends>> parents = { point1,point2,point3};
-		bisectrix->setParent(DependsTypes::Bisectrix, parents);
+		bisectrix->setParent(DependsTypes::Bisectrix, { point1,point2,point3 });
 
 	}
 
@@ -205,8 +233,14 @@ public:
 			if (!line) {
 				throw std::invalid_argument("Shape " + to_string(shapeIndex) + " not line");
 			}
-			std::vector <std::weak_ptr<Depends>> parent = { line };
-			point->setParent(DependsTypes::BelongsToLine, parent);
+			point->setParent(DependsTypes::BelongsToLine, { line });
+		}
+		else if (shape->getType() == st_circle) {
+			auto circle = std::dynamic_pointer_cast<Circle>(shape);
+			if (!circle) {
+				throw std::invalid_argument("Shape " + to_string(shapeIndex) + " not circle");
+			}
+			point->setParent(DependsTypes::BelongsToCircle, { circle });
 		}
 		else {
 			throw std::invalid_argument("addPointBelong not for this shape type");
@@ -224,14 +258,26 @@ public:
 			if (!line) {
 				throw std::invalid_argument("Shape " + to_string(shapeIndex) + " not line");
 			}
-			std::vector <std::weak_ptr<Depends>> parent = { line };
-			point->setParent(DependsTypes::BelongsToLine, parent);
+			point->setParent(DependsTypes::BelongsToLine, { line });
+		}
+		if (shape->getType() == st_circle) {
+			auto circle = std::dynamic_pointer_cast<Circle>(shape);
+			if (!circle) {
+				throw std::invalid_argument("Shape " + to_string(shapeIndex) + " not circle");
+			}
+			point->setParent(DependsTypes::BelongsToCircle, { circle });
 		}
 		else {
 			throw std::invalid_argument("addPointBelong not for this shape type");
 		}
 	}
 
+	void addCircleCenter(int index) {
+		auto circle = getCircle(index);
+
+		auto point = shapeManager.addBasicShape(Point());
+		point->setParent(DependsTypes::CircleCenter, { circle });
+	}
 	
 
 	void intersection(ShapeType type1, int index1, ShapeType type2, int index2) {
@@ -239,11 +285,31 @@ public:
 			auto line1 = getLine(index1);
 			auto line2 = getLine(index2);
 
-			auto inderPoint = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(0, 0)));
+			auto interPoint = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(0, 0)));
 
-			std::vector <std::weak_ptr<Depends>> parents = { line1,line2 };
-			inderPoint->setParent(DependsTypes::IntersectionLineLine, parents);
+			interPoint->setParent(DependsTypes::IntersectionLineLine, { line1,line2 });
 		}
+		else if (type1 == st_line && type2 == st_circle) {
+			auto line = getLine(index1);
+			auto circle = getCircle(index2);
+
+			auto interPoint1 = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(0, 0)));
+			auto interPoint2 = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(0, 0)));
+
+			interPoint1->setParent(DependsTypes::IntersectionLineCircle, { circle,line }, 1);
+			interPoint2->setParent(DependsTypes::IntersectionLineCircle, { circle,line }, -1);
+		}
+		else if (type1 == st_circle && type2 == st_line) {
+			auto line = getLine(index2);
+			auto circle = getCircle(index1);
+
+			auto interPoint1 = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(0, 0)));
+			auto interPoint2 = std::dynamic_pointer_cast<Point>(shapeManager.addBasicShape(Point(0, 0)));
+
+			interPoint1->setParent(DependsTypes::IntersectionLineCircle, { circle,line }, 1);
+			interPoint2->setParent(DependsTypes::IntersectionLineCircle, { circle,line }, -1);
+		}
+		
 		else {
 			throw std::invalid_argument("not for this type");
 		}
@@ -282,5 +348,18 @@ private:
 			return nullptr;
 		}
 		return line;
+	}
+	std::shared_ptr<Circle> getCircle(int index) {
+		auto shape = shapeManager.getBasicShape(index);
+		if (!shape) {
+			throw std::invalid_argument("Invalid indices " + to_string(index));
+			return nullptr;
+		}
+		auto circle = dynamic_pointer_cast<Circle>(shape);
+		if (!circle) {
+			throw std::invalid_argument("Shape " + to_string(index) + " not circle");
+			return nullptr;
+		}
+		return circle;
 	}
 };

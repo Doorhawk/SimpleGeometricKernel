@@ -7,11 +7,11 @@
 
 
 
-double go::precision = 1e-8;
-
+double go::precision = 1e-9;
 void go::setPrecision(double newPrecision) {
 	if (newPrecision <= 0) {
 		throw std::invalid_argument("Precision must be positive.");
+		throw std::string("Precision must be positive.");
 	}
 	precision = newPrecision;
 }
@@ -69,15 +69,15 @@ double go::getPrecision() {
 double go::distance(const Point& point1,const Point& point2) {
 	return sqrt((point1.x - point2.x)* (point1.x - point2.x)+ (point1.y - point2.y)* (point1.y - point2.y));
 }
-double go::distance(std::shared_ptr<Line> line, const Point& point) {
+double go::distance(const Line& line, const Point& point) {
 	// a = (x1 - x2,y1 - y2) - направление прямой
 	// (a,w) 
 
-	Vector a = line->p2 - line->p1; // - направление прямой
-	Vector w = line->p1 - point; // - направление между точкой и первой точкой прямой
+	Vector a = line.p2 - line.p1; // - направление прямой
+	Vector w = line.p1 - point; // - направление между точкой и первой точкой прямой
 	double answ = abs(a.x * w.y - a.y * w.x); // Модуль определителя (векторное произведение в 2D)
 
-	if (a.abs() == 0) {
+	if (a.abs() < precision) {
 		throw std::invalid_argument("The two points defining the line are the same.");
 	}
 
@@ -85,31 +85,19 @@ double go::distance(std::shared_ptr<Line> line, const Point& point) {
 
 	return answ;
 }
-double go::distance(const Point& point, std::shared_ptr<Line> line) {
+double go::distance(const Point& point,const Line& line) {
 	return go::distance(line, point);
 }
-double go::distance(std::shared_ptr<Circle> circle, const Point& point) {
+double go::distance(const Circle& circle, const Point& point) {
 
-	double distCentPoint = go::distance(point, circle->center);
-	return  abs(distCentPoint - circle->radius);
+	double distCentPoint = go::distance(point, circle.center);
+	return  abs(distCentPoint - circle.radius);
 }
-double go::distance(const Point& point, std::shared_ptr<Circle> circle) {
+double go::distance(const Point& point, const Circle& circle) {
 	return go::distance(circle, point);
 }
-//
-//Line go::getParallel(const Line& line, const  Point& point) {
-//	
-//	Point p1 = point;
-//	Point p2 = { line.p2.x+point.x-line.p1.x,line.p2.y + point.y- line.p1.y};
-//
-//	return Line(p1, p2);
-//	
-//}
-std::shared_ptr<Line> go::getPerpendicular(std::shared_ptr<Line> line, std::shared_ptr<Point> point) {
-	Point p1 = (line->p1 - line->p2);
-	p1 = { -p1.y,p1.x };
-	return std::make_shared<Line>(Line((p1 + *point), *point));
-}
+
+
 
 std::vector<Point> go::findIntersection(Line line1, Line line2) {
 	double A1 = line1.p2.x - line1.p1.x;
@@ -187,32 +175,39 @@ std::vector<Point> go::findIntersection(Line line1, Line line2) {
  */
 }
 
-//
-//std::vector<Point> go::findIntersection(const Circle& circle, const Line& line) {
-//	if (go::distance(circle.cen, line)>circle.rad+precision) {
-//		return {};
-//	}
-//	else if (go::distance(circle.cen, line) >= circle.rad) {
-//		Line perpend = line.getPerpendicular(circle.cen);
-//		vector<Point> inter = go::findIntersection(perpend, line);
-//		return { inter[0] };
-//	}
-//	else {
-//		Line perpend = line.getPerpendicular(circle.cen);
-//		vector<Point> inter = go::findIntersection(perpend, line);
-//
-//		double dist = sqrt(circle.rad * circle.rad - Vector(circle.cen - inter[0]).abs()* Vector(circle.cen - inter[0]).abs());
-//		Vector vec = line.p2 - line.p1;
-//		vec = vec.normalize();
-//		vec = vec * dist;
-//
-//		return { inter[0] + vec,inter[0] - vec };
-//	}
-//	return {};
-//}
-//std::vector<Point> go::findIntersection(const Line& line, const Circle& circle) {
-//	return findIntersection(circle, line);
-//}
+
+std::vector<Point> go::findIntersection(const Circle& circle, const Line& line) {
+	Point center = circle.getCenter();
+	double radius = circle.getRadius();
+	double distanse = go::distance(center, line);
+	
+	if (distanse > radius + precision) {
+		return {};
+	}
+	else if (distanse >= radius) {
+		Line perpend;
+		perpend.toPerpendicular(line,center);
+		vector<Point> inter = go::findIntersection(perpend, line);
+		return { inter[0] };
+	}
+	else {
+		Line perpend;
+		perpend.toPerpendicular(line,center);
+		vector<Point> inter = go::findIntersection(perpend, line);
+		
+		double centrToInter = Vector(center - inter[0]).abs();
+		double dist = sqrt(radius * radius - centrToInter * centrToInter);
+		Vector vec = line.p2 - line.p1;
+		vec = vec.normalize();
+		vec = vec * dist;
+
+		return { inter[0] + vec,inter[0] - vec };
+	}
+	return {};
+}
+std::vector<Point> go::findIntersection(const Line& line, const Circle& circle) {
+	return findIntersection(circle, line);
+}
 //std::vector<Point> go::findIntersection(const Circle& circle1, const Circle& circle2) {
 //	double d = go::distance(circle1.cen, circle2.cen);
 //	if ( d > circle1.rad +circle2.rad+ precision||d< abs(circle1.rad - circle2.rad) - precision) {
@@ -239,12 +234,15 @@ std::vector<Point> go::findIntersection(Line line1, Line line2) {
 Point go::findMiddle(const Point& point1, const Point& point2) {
 	return Point((point2.x + point1.x) / 2, (point2.y + point1.y) / 2);
 }
-//double go::findAngle(const Line& line1, const Line& line2) {
-//	Vector vec1 = line1.p1 - line1.p2;
-//	Vector vec2 = line2.p1 - line2.p2;
-//	double angle = acos(vec1 * vec2 / vec1.abs() / vec2.abs());
-//	return min(angle, acos(-1)-angle);
-//}
-//double go::findAngle(const Point& point1, const Point& point2, const Point& point3) {
-//	return findAngle(Line(point1, point2), Line(point3, point2));
-//}
+double go::findAngle(const Line& line1, const Line& line2) {
+	Vector vec1 = line1.p1 - line1.p2;
+	Vector vec2 = line2.p1 - line2.p2;
+	double multiply = vec1 * vec2 / vec1.abs() / vec2.abs();
+	if (multiply >= 1)
+		return 0;
+	double angle = acos(vec1 * vec2 / vec1.abs() / vec2.abs());
+	return angle;
+}
+double go::findAngle(const Point& point1, const Point& point2, const Point& point3) {
+	return findAngle(Line(point1, point2), Line(point3, point2));
+}

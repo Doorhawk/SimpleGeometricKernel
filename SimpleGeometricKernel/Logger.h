@@ -30,13 +30,13 @@ enum class LogLevel {
 };
 
 
-#define LOG(name,level, message) Logger::getInstance().log(name,level, message, __FILE__, __FUNCTION__, __LINE__)
-#define LOG_INFO(name,message) Logger::getInstance().log(name,LogLevel::INFO, message, __FILE__, __FUNCTION__, __LINE__)
-#define LOG_WARNING(name,message) Logger::getInstance().log(name,LogLevel::WARNING, message, __FILE__, __FUNCTION__, __LINE__)
-#define LOG_ERROR(name,message) Logger::getInstance().log(name,LogLevel::ERRORR, message, __FILE__, __FUNCTION__, __LINE__)
+#define LOG(name,level, message) Logger::getInstance().log(#name,level, message, __FILE__, __FUNCTION__, __LINE__)
+#define LOG_INFO(name,message) Logger::getInstance().log(#name,LogLevel::INFO, message, __FILE__, __FUNCTION__, __LINE__)
+#define LOG_WARNING(name,message) Logger::getInstance().log(#name,LogLevel::WARNING, message, __FILE__, __FUNCTION__, __LINE__)
+#define LOG_ERROR(name,message) Logger::getInstance().log(#name,LogLevel::ERRORR, message, __FILE__, __FUNCTION__, __LINE__)
 
 #ifdef _DEBUG
-#define LOG_DEBUG(name,message) Logger::getInstance().log(name,LogLevel::DEBUG, message, __FILE__, __FUNCTION__, __LINE__)
+#define LOG_DEBUG(name,message) Logger::getInstance().log(#name,LogLevel::DEBUG, message, __FILE__, __FUNCTION__, __LINE__)
 #else
 #define LOG_DEBUG(message)
 #endif
@@ -55,7 +55,7 @@ enum class LogLevel {
 
 
 #define LOG_G_SET_FORMAT(format) Logger::getInstance().setFormatString("GLOBAL",format)
-#define LOG_SET_FORMAT(name,format) Logger::getInstance().setFormatString(name,format)
+#define LOG_SET_FORMAT(name,format) Logger::getInstance().setFormatString(#name,format)
 // %L — log level (DEBUG, INFO, WARN, ERROR).
 // %T — time HH:MM:SS.
 // %M — message.

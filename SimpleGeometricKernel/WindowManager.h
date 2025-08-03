@@ -146,13 +146,13 @@ private:
         } else if (shape->getType() == st_line) {
             auto line = dynamic_pointer_cast<Line>(shape);
             if (line) {
-                return go::distance(line, Point(x, y));
+                return go::distance(*line, Point(x, y));
             }
         }
         else if (shape->getType() == st_circle) {
             auto circle = dynamic_pointer_cast<Circle>(shape);
             if (circle) {
-                return go::distance(circle, Point(x, y));
+                return go::distance(*circle, Point(x, y));
             }
         }
         return 10000;
@@ -171,12 +171,13 @@ private:
         }
         else if (isDragging && selectedShape) {
             sf::Vector2f mousePos = getMouseWorldPosition();
+            if(selectedShape->getType()==st_point){
+                dynamic_pointer_cast<Point>(selectedShape)->setPos(mousePos.x, mousePos.y);
+                return;
+            }
             double dx = mousePos.x - startPose.getX();
             double dy = mousePos.y - startPose.getY();
-
             selectedShape->move(dx, dy);
-
-            // ќбновл€ем начальную позицию дл€ следующего шага
             startPose.move(dx, dy);
         }
     }

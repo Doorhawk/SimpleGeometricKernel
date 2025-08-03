@@ -8,9 +8,13 @@ enum class DependsTypes {
     Parallel,
     Perpendicular,
     MedianPerpendicular,
+    CircleCenter,
+    Midpoint,
     Bisectrix,
     BelongsToLine,
+    BelongsToCircle,
     IntersectionLineLine,
+    IntersectionLineCircle,
     Circle3points,
     Circle2points, // center and onCircle
     Line2points

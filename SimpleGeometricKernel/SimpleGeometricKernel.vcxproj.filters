@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="tests">
+      <UniqueIdentifier>{ac20b8b1-6663-43c9-b93b-bd09d3c78c0e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -26,6 +29,9 @@
     </ClCompile>
     <ClCompile Include="enums.h">
       <Filter>Файлы заголовков</Filter>
+    </ClCompile>
+    <ClCompile Include="global.cpp">
+      <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -49,6 +55,15 @@
     </ClInclude>
     <ClInclude Include="Logger.h">
       <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="GeometricOperationsTest.h">
+      <Filter>tests</Filter>
+    </ClInclude>
+    <ClInclude Include="PointTest.h">
+      <Filter>tests</Filter>
+    </ClInclude>
+    <ClInclude Include="unittest.h">
+      <Filter>tests</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

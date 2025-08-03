@@ -11,11 +11,11 @@
 
 class ShapeManager {
 private:
+    std::unordered_map<int, std::shared_ptr<BasicShape>> shapes;
     std::mutex shapesMutex;
     std::condition_variable cv;
-    bool allDrowed = false;
+    bool allDrowed = true;
     bool shapesModified = true;
-    std::unordered_map<int, std::shared_ptr<BasicShape>> shapes;
     int nextIndex = 0;
     friend class WindowManager;
     Color defaultColor = Color::Black;

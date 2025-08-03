@@ -38,6 +38,9 @@ public:
     double operator*(const Vector& other) const;
     Vector operator*(double scalar) const;
     Vector operator/(double scalar) const;
+    double getX();
+    double getY();
+    
 };
 
 class Depends : public std::enable_shared_from_this<Depends> {
@@ -53,6 +56,7 @@ protected:
     Color oldColor = Color::Black;
     bool valid = true;
     void setType(const ShapeType newType);
+    double valDepends = 0;
 public:
     std::vector<std::weak_ptr<Depends>> getChildren() const;
     Depends(const ShapeType type);
@@ -66,7 +70,7 @@ public:
     void setCildrenColor(Color color,bool setNew);
     Color getColor();
     // Установка родителя с указанием типа зависимости
-    void setParent(DependsTypes _type, const std::vector <std::weak_ptr<Depends>>& _parent);
+    void setParent(DependsTypes _type, const std::vector <std::weak_ptr<Depends>>& _parent,double val = 0);
     // Добавление ребёнка
     template <typename... Args>
     void addChildren(const Args&... args) {
@@ -122,8 +126,7 @@ private:
     friend class Sector;
     friend class Poligon;
 protected:
-    double dependsX;
-    double dependsY;
+   
 public:
     Point(double x = 0, double y = 0);
     Point(const Point& other);
@@ -133,16 +136,17 @@ public:
     void move(double dx, double dy) override;
     void rotate(const Point& center, double angle) override;
     Point& operator=(const Point& other);
+    //Point& operator=(const Vector& other);
     Point operator+(const Point& other) const;
     Point operator+(const Vector& other) const;
     Point operator-(const Vector& other) const;
     Point operator-(const Point& other) const;
     Point operator*(double scalar) const;
     bool operator==(const Point& other) const;
+    bool operator!=(const Point& other) const;
     double getX() const;
     double getY() const;
-    void setX(double newx);
-    void setY(double newy);
+    void setPos(double newx, double newy);
     void update() override;
     void init() override;
     bool canMove() override;
@@ -153,11 +157,13 @@ protected:
     friend class go;
     friend class Point;
     double fun(double x) const;
-    
+    bool isSegment;
 
 public:
     Line(Point p1,Point p2);
     Line();
+    Line(bool);
+    void setSegment(bool);
     virtual std::string printInf() const override;
     void move(double dx, double dy) override;
     void rotate(const Point& center, double angle) override;
@@ -168,11 +174,12 @@ public:
     void update() override;
     void init() override;
     void toMedianPerpendicular(const Point& p1, const Point& p2);
+    void toParallel(const Line& line, const Point& point);
+    void toPerpendicular(const Line& line, const Point& point);
+    void toBisectrix(const Point& point, const Point& point1, const Point& point2);
+    void to2Points(const Point & point, const Point & point1);
     bool canMove() override;
 };
-
-
-
 class Circle : public virtual BasicShape {
 private:
     Point center;
@@ -197,6 +204,11 @@ public:
     bool canMove() override;
     
 };
+
+std::ostream& operator<<(std::ostream& os, const Point& p);
+std::ostream& operator<<(std::ostream& os, const Line& l);
+std::ostream& operator<<(std::ostream& os, const Circle& c);
+
 
 
 //class Segment : public Line {
