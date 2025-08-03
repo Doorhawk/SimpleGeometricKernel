@@ -69,11 +69,11 @@ color 0 0 0 50 to 7,6,9
 `-> [mid | midpoint ] [p ind1 ind2 | c x1 y1 x2 y2]`  
 Биссектриса по 3 точкам  
 `-> [bi | bisectrix ] [p ind1 ind2 ind2 | c x1 y1 x2 y2 x3 y3]`  
-центр окружности  
+Центр окружности  
 `-> [cc | circlecenter] circle_ind`  
 Точка принадлежащая другому объекту, проектирует уже существующую точку или создает по новым координатам  
 `-> belong parend_ind [p point_ind | c x y]`  
-####  Операции над объектами
+###  Операции над объектами
 
 Передвижение объекта номер `ind` на вектор `(x,y)`  
 `-> move ind to x y`  
@@ -83,7 +83,7 @@ color 0 0 0 50 to 7,6,9
 `-> deleteAll`  
 Пересечение  
 `-> [inter | intersection] obj1_type obj1_ind obj2_type obj2_ind `  
-####  Дополнительные 
+###  Дополнительные 
 
 Информация об объекте  
 `-> inf obj_ind`  
